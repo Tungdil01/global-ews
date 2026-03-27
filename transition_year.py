@@ -171,9 +171,9 @@ def plot_type_percentages(bifurcation_csv, img_folder):
             pivot[col] = 0
     pivot = pivot[['fold', 'transcritical', 'no bifurcation']]
     total = pivot.sum(axis=1)
-    start_candidates = total[total >= 1]
+    start_candidates = total[total >= 20]
     if start_candidates.empty:
-        print("Warning: No year with at least 1 species; plot not created.")
+        print("Warning: No year with at least 20 species; plot not created.")
         return
     start_year = start_candidates.index.min()
     pivot = pivot.loc[start_year:]

@@ -9,6 +9,12 @@ from joblib import Parallel, delayed
 import warnings
 warnings.filterwarnings('ignore')
 
+# Set random seed for reproducibility
+seed = 1234
+np.random.seed(seed)
+import pytensor
+pytensor.config.rng_seed = seed
+
 def set_plot_style():
     plt.rcParams.update({
         'axes.labelsize': 18, 'xtick.labelsize': 16, 'ytick.labelsize': 16, 'legend.fontsize': 14, 'axes.titlesize': 18, 'font.size': 14, 'lines.linewidth': 1.5, 'figure.facecolor': 'white', 'axes.facecolor': 'white', 'axes.edgecolor': 'black', 'axes.linewidth': 1.5
@@ -212,7 +218,7 @@ def run_multinomial_model_fixed(data, feature_cols, outcome_col, model_name='fix
             p0 = 1 / (1 + pm.math.sum(exp_eta, axis=-1, keepdims=True))
             p = pm.math.concatenate([p0, exp_eta * p0], axis=-1)
             y_obs = pm.Categorical('y_obs', p=p, observed=y)
-            trace = pm.sample(draws=1000, tune=1000, cores=4, target_accept=0.95, return_inferencedata=True, random_seed=1234)
+            trace = pm.sample(draws=1000, tune=1000, cores=4, target_accept=0.95, return_inferencedata=True, random_seed=seed)
         category_names = ['neutral', 'invasive', 'threatened']
         summaries = compute_multinomial_summaries(trace, feature_cols, category_names[1:])
         error = None
@@ -255,7 +261,7 @@ def run_multinomial_model_hierarchical(data, feature_cols, outcome_col, group_co
             p0 = 1 / (1 + pm.math.sum(exp_eta, axis=-1, keepdims=True))
             p = pm.math.concatenate([p0, exp_eta * p0], axis=-1)
             y_obs = pm.Categorical('y_obs', p=p, observed=y)
-            trace = pm.sample(draws=1000, tune=1000, cores=4, target_accept=0.95, return_inferencedata=True, random_seed=1234)
+            trace = pm.sample(draws=1000, tune=1000, cores=4, target_accept=0.98, return_inferencedata=True, random_seed=seed)
         category_names = ['neutral', 'invasive', 'threatened']
         summaries = compute_multinomial_summaries(trace, feature_cols, category_names[1:])
         error = None

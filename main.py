@@ -1583,7 +1583,7 @@ def core_worker(core_id, full_data, classifier_paths_500, classifier_paths_1500,
 def run_analysis_pipeline(min_records=100, force_reclassification=False, species_to_plot=None, n_jobs=-1, batch_size=1, specific_species_list=None):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, 'data')
-    classifier_base = os.path.join(data_dir, 'saved_classifiers', 'bury_pnas_21')
+    classifier_base = os.path.join(script_dir, '..', 'saved_classifiers', 'bury_pnas_21')
     root_path_500 = os.path.join(classifier_base, 'len500')
     root_path_1500 = os.path.join(classifier_base, 'len1500')
     classifier_names_500 = [name for name in os.listdir(root_path_500) if name.endswith('.pkl')]
@@ -1696,7 +1696,7 @@ def main():
     update_taxonomic_cache_from_other()
     refresh_taxonomic_cache_from_results()
     print("Starting EWS analysis pipeline...")
-    min_records = 10
+    min_records = 20
     force_reclassification = False
     results_file = 'csv/bifurcation_results.csv'
     bifurcation_results_exists = os.path.exists(results_file) and os.path.getsize(results_file) > 0
