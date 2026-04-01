@@ -8,12 +8,12 @@ import arviz as az
 from joblib import Parallel, delayed
 import warnings
 warnings.filterwarnings('ignore')
-
-# Set random seed for reproducibility
+from scipy.stats import chi2_contingency
+import pytensor.tensor as pt
 seed = 1234
-np.random.seed(seed)
 import pytensor
 pytensor.config.rng_seed = seed
+np.random.seed(seed)
 
 def set_plot_style():
     plt.rcParams.update({
@@ -58,6 +58,95 @@ def load_and_preprocess_bifurcation(threshold=0.3):
         sys.exit(1)
     print(f"- Taxonomic groups available: {df['taxonomic_group'].nunique()}")
     return df
+
+def bayesian_contingency_analysis(table, group_name):
+    if table.empty or table.shape[0] < 2 or table.shape[1] < 2:
+        print(f"Bayesian contingency analysis skipped for {group_name}: table too small.")
+        return
+    rows = table.index.tolist()
+    cols = table.columns.tolist()
+    df_long = table.reset_index().melt(id_vars=table.index.name, var_name='tipping_type', value_name='count')
+    df_long = df_long[df_long['count'] > 0]
+    row_codes = pd.Categorical(df_long[table.index.name], categories=rows).codes
+    col_codes = pd.Categorical(df_long['tipping_type'], categories=cols).codes
+    n_rows = len(rows)
+    n_cols = len(cols)
+    with pm.Model() as model:
+        mu = pm.Normal('mu', mu=0, sigma=5)
+        alpha = pm.Normal('alpha', mu=0, sigma=5, shape=n_rows)
+        beta = pm.Normal('beta', mu=0, sigma=5, shape=n_cols)
+        gamma = pm.Normal('gamma', mu=0, sigma=5, shape=(n_rows-1, n_cols-1))
+        alpha_ = alpha - alpha[0]
+        beta_ = beta - beta[0]
+        gamma_full = pt.zeros((n_rows, n_cols))
+        gamma_full = pt.set_subtensor(gamma_full[1:, 1:], gamma)
+        log_lambda = mu + alpha_[row_codes] + beta_[col_codes] + gamma_full[row_codes, col_codes]
+        pm.Poisson('y_obs', mu=pm.math.exp(log_lambda), observed=df_long['count'].values)
+        step = pm.NUTS(target_accept=0.995, max_treedepth=15)
+        trace = pm.sample(draws=2000, tune=2000, cores=4, step=step, return_inferencedata=True, random_seed=seed)
+    posterior = trace.posterior
+    odds_ratios = {}
+    for i in range(n_rows):
+        for j in range(n_cols):
+            if i == 0 and j == 0:
+                or_mean = 1.0
+                or_hdi = (1.0, 1.0)
+            elif i == 0:
+                or_mean = 1.0
+                or_hdi = (1.0, 1.0)
+            elif j == 0:
+                or_mean = 1.0
+                or_hdi = (1.0, 1.0)
+            else:
+                gamma_samples = posterior['gamma'].values[:, :, i-1, j-1].reshape(-1)
+                or_samples = np.exp(gamma_samples)
+                or_mean = np.mean(or_samples)
+                or_hdi = az.hdi(or_samples, hdi_prob=0.95)
+            odds_ratios[(rows[i], cols[j])] = {'mean': or_mean, 'lower': or_hdi[0], 'upper': or_hdi[1]}
+    set_plot_style()
+    labels = []
+    means = []
+    lowers = []
+    uppers = []
+    for (r, c), vals in odds_ratios.items():
+        if r == rows[0] and c == cols[0]:
+            continue
+        labels.append(f"{r} - {c}")
+        means.append(vals['mean'])
+        lowers.append(vals['lower'])
+        uppers.append(vals['upper'])
+    if len(labels) == 0:
+        print(f"No odds ratios to plot for {group_name}")
+        return
+    y_pos = np.arange(len(labels))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
+    for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
+        ax.plot(mean, i, 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+        ax.hlines(i, low, high, color='black', linewidth=1.5)
+    ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels)
+    ax.set_xlabel('Odds Ratio (reference: first row + first column)')
+    ax.set_xlim(0, max(max(uppers) * 1.1, 2.0))
+    ax.set_ylim(-0.5, len(labels) - 0.5)
+    plt.tight_layout()
+    plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
+    plt.close()
+
+def contingency_table_bifurcation(bif_df, group_col, group_name):
+    if group_col not in bif_df.columns or bif_df[group_col].isna().all():
+        print(f"{group_name} data not available, skipping contingency table.")
+        return None
+    table = pd.crosstab(bif_df[group_col], bif_df['tipping_point_type'])
+    print(f"\nContingency table ({group_name} x bifurcation type):")
+    print(table.to_string())
+    table.to_csv(f'csv/contingency_{group_name}_bifurcation.csv')
+    chi2, p, dof, expected = chi2_contingency(table)
+    print(f"\nChi-square test: chi2 = {chi2:.3g}, df = {dof}, p = {p:.3g}")
+    if (expected < 5).any():
+        print("Warning: Some expected frequencies are below 5. Chi-square approximation may be unreliable.")
+    bayesian_contingency_analysis(table, group_name)
+    return table
 
 def load_and_preprocess_invasive():
     df = pd.read_csv('csv/invasive_species.csv', dtype=str)
@@ -130,6 +219,38 @@ def load_and_preprocess_biome():
         print("ERROR: 'biome' column contains only NaN values.")
         sys.exit(1)
     print(f"[biome] Loaded {len(dedup)} species with biome information.")
+    return dedup
+
+def load_and_preprocess_koppen():
+    df = pd.read_csv('csv/biomes.csv')
+    df['species_short'] = df['species'].apply(preprocess_species_name)
+    if 'koppen_zone' not in df.columns:
+        print("WARNING: 'koppen_zone' column not found in biomes.csv. Skipping Koppen analysis.")
+        return pd.DataFrame(columns=['species_short', 'koppen_zone'])
+    dedup = df[['species_short', 'koppen_zone']].drop_duplicates(subset=['species_short']).reset_index(drop=True)
+    if dedup.empty:
+        print("WARNING: No Koppen zone data available.")
+        return pd.DataFrame(columns=['species_short', 'koppen_zone'])
+    if dedup['koppen_zone'].isna().all():
+        print("WARNING: 'koppen_zone' column contains only NaN values.")
+        return pd.DataFrame(columns=['species_short', 'koppen_zone'])
+    print(f"[koppen] Loaded {len(dedup)} species with Koppen zone information.")
+    return dedup
+
+def load_and_preprocess_meow():
+    df = pd.read_csv('csv/biomes.csv')
+    df['species_short'] = df['species'].apply(preprocess_species_name)
+    if 'meow_zone' not in df.columns:
+        print("WARNING: 'meow_zone' column not found in biomes.csv. Skipping MEOW analysis.")
+        return pd.DataFrame(columns=['species_short', 'meow_zone'])
+    dedup = df[['species_short', 'meow_zone']].drop_duplicates(subset=['species_short']).reset_index(drop=True)
+    if dedup.empty:
+        print("WARNING: No MEOW zone data available.")
+        return pd.DataFrame(columns=['species_short', 'meow_zone'])
+    if dedup['meow_zone'].isna().all():
+        print("WARNING: 'meow_zone' column contains only NaN values.")
+        return pd.DataFrame(columns=['species_short', 'meow_zone'])
+    print(f"[meow] Loaded {len(dedup)} species with MEOW zone information.")
     return dedup
 
 def create_combined_dataset(invasive_data, threatened_data, biome_df):
@@ -349,7 +470,7 @@ def create_multinomial_inference_figure(bayesian_results, outcome_name, model_na
                     hdi_icc = az.hdi(icc, hdi_prob=0.95)
                     label = ['invasive','threatened'][k]
                     axes[1].hist(sigma_group[:, k], bins=40, alpha=0.5, edgecolor='black', density=True, label=label)
-                    icc_text += f'ICC {label}: {mean_icc:.2g}\n' #  [{hdi_icc[0]:.2g}, {hdi_icc[1]:.2g}]
+                    icc_text += f'ICC {label}: {mean_icc:.2g}\n'
                 axes[1].set_xlabel('Group SD')
                 axes[1].set_ylabel('Density')
                 axes[1].legend()
@@ -459,10 +580,25 @@ def run_analysis(probability_threshold):
     inv_df = load_and_preprocess_invasive()
     iucn_df = load_and_preprocess_iucn()
     biome_df = load_and_preprocess_biome()
+    koppen_df = load_and_preprocess_koppen()
+    meow_df = load_and_preprocess_meow()
+    bif_with_biome = pd.merge(bif_df[['species_short', 'taxonomic_group', 'tipping_point_type']], biome_df, on='species_short', how='left')
+    contingency_table_bifurcation(bif_with_biome, 'biome', 'biome')
+    if not koppen_df.empty:
+        bif_with_koppen = pd.merge(bif_df[['species_short', 'taxonomic_group', 'tipping_point_type']], koppen_df, on='species_short', how='left')
+        contingency_table_bifurcation(bif_with_koppen, 'koppen_zone', 'koppen')
+    if not meow_df.empty:
+        bif_with_meow = pd.merge(bif_df[['species_short', 'taxonomic_group', 'tipping_point_type']], meow_df, on='species_short', how='left')
+        contingency_table_bifurcation(bif_with_meow, 'meow_zone', 'meow')
+    contingency_table_bifurcation(bif_df, 'taxonomic_group', 'taxonomic')
     invasive_data, threatened_data = merge_datasets(bif_df, inv_df, iucn_df)
     create_predicted_probability_plot(inv_df, iucn_df, 'invasive', probability_threshold)
     create_predicted_probability_plot(inv_df, iucn_df, 'threatened', probability_threshold)
     combined_data = create_combined_dataset(invasive_data, threatened_data, biome_df)
+    if not koppen_df.empty:
+        combined_data = pd.merge(combined_data, koppen_df, on='species_short', how='left')
+    if not meow_df.empty:
+        combined_data = pd.merge(combined_data, meow_df, on='species_short', how='left')
     bayesian_results = []
     data_comb, feat_comb = prepare_multinomial_data(combined_data, biome_df, 'category')
     res_fixed = run_multinomial_model_fixed(data_comb, feat_comb, 'category', model_name='fixed_multinomial')
@@ -473,6 +609,12 @@ def run_analysis(probability_threshold):
     if 'biome' in data_comb.columns:
         res_hier_bio = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='biome', model_name='hierarchical_biome_multinomial')
         bayesian_results.append(res_hier_bio)
+    if 'koppen_zone' in data_comb.columns and data_comb['koppen_zone'].notna().any():
+        res_hier_kop = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='koppen_zone', model_name='hierarchical_koppen_multinomial')
+        bayesian_results.append(res_hier_kop)
+    if 'meow_zone' in data_comb.columns and data_comb['meow_zone'].notna().any():
+        res_hier_meow = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='meow_zone', model_name='hierarchical_meow_multinomial')
+        bayesian_results.append(res_hier_meow)
     bayesian_df = pd.DataFrame(bayesian_results)
     if bayesian_df.empty:
         print("No Bayesian results to plot.")

@@ -1,8 +1,11 @@
+import os
 import re
 import difflib
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
+import geopandas as gpd
+from shapely.geometry import Point
 
 CANONICAL_BIOMES = [
     'Temperate Broadleaf & Mixed Forests', 'Temperate Coniferous Forests', 'Boreal Forests/Taiga', 'Deserts & Xeric Shrublands', 'Tropical & Subtropical Moist Broadleaf Forests', 'Tropical & Subtropical Dry Broadleaf Forests', 'Tropical & Subtropical Grasslands, Savannas & Shrublands', 'Temperate Grasslands, Savannas & Shrublands', 'Mediterranean Forests, Woodlands & Scrub', 'Montane Grasslands & Shrublands', 'Flooded Grasslands & Savannas', 'Mangroves', 'Tundra', 'Polar Ecoregions', 'Temperate Shelf & Seas', 'Tropical Seas (Non-coral)', 'Temperate Upwelling', 'Small River Ecosystems', 'Small Lake Ecosystems', 'Large River Ecosystems', 'Large River Delta Ecosystems', 'Large Lake Ecosystems', 'Tropical Coral Reefs', 'Mixed/Generalist Habitats', 'Unknown/Unclassified'
@@ -73,12 +76,36 @@ def load_and_merge(input_bifurcation, input_rawdata, input_metadata):
     print(f"Rows with BIOME_MAP after merge: {df['BIOME_MAP'].notna().sum()} / {len(df)}")
     return df
 
+def assign_koppen_zone(lat, lon, gdf_koppen):
+    if pd.isna(lat) or pd.isna(lon):
+        return None
+    point = Point(lon, lat)
+    matches = gdf_koppen[gdf_koppen.contains(point)]
+    if not matches.empty:
+        return matches.iloc[0]['GRIDCODE']
+    return None
+
+def assign_meow_zone(lat, lon, gdf_meow):
+    if pd.isna(lat) or pd.isna(lon):
+        return None
+    point = Point(lon, lat)
+    matches = gdf_meow[gdf_meow.contains(point)]
+    if not matches.empty:
+        row = matches.iloc[0]
+        if 'REALM' in row.index:
+            return row['REALM']
+        elif 'ECOREGION' in row.index:
+            return row['ECOREGION']
+        else:
+            return 'Unknown'
+    return None
+
 def apply_cleaning(df):
     df['biome'] = df.apply(lambda row: get_canonical_biome(row['BIOME_MAP'], row['HABITAT']), axis=1)
     return df
 
 def save_output(df, output_path):
-    cols = ['species', 'LATITUDE', 'LONGITUDE', 'HABITAT', 'BIOME_MAP', 'biome']
+    cols = ['species', 'LATITUDE', 'LONGITUDE', 'HABITAT', 'BIOME_MAP', 'biome', 'koppen_zone', 'meow_zone']
     for col in cols:
         if col not in df.columns:
             df[col] = np.nan
@@ -89,8 +116,32 @@ def main():
     input_rawdata = 'data/biotime_v2_full_2025/biotime_v2_rawdata_2025.csv'
     input_metadata = 'data/biotime_v2_full_2025/biotime_v2_metadata_2025.csv'
     output_csv = 'csv/biomes.csv'
+    koppen_shapefile = 'data/koppen/1976-2000_GIS/1976-2000.shp'
+    meow_shapefile = 'data/meow/Marine_Ecoregions_of_the_World/data/commondata/data0/meow_ecos_expl_clipped_expl.shp'
     df = load_and_merge(input_bifurcation, input_rawdata, input_metadata)
     df = apply_cleaning(df)
+    if os.path.exists(koppen_shapefile):
+        gdf_koppen = gpd.read_file(koppen_shapefile)
+        if gdf_koppen.crs is None:
+            gdf_koppen = gdf_koppen.set_crs('EPSG:4326')
+        elif str(gdf_koppen.crs) != 'EPSG:4326':
+            gdf_koppen = gdf_koppen.to_crs('EPSG:4326')
+        tqdm.pandas(desc="Assigning Koppen zones")
+        df['koppen_zone'] = df.progress_apply(lambda row: assign_koppen_zone(row['LATITUDE'], row['LONGITUDE'], gdf_koppen), axis=1)
+    else:
+        print(f"Koppen shapefile not found at {koppen_shapefile}, skipping.")
+        df['koppen_zone'] = None
+    if os.path.exists(meow_shapefile):
+        gdf_meow = gpd.read_file(meow_shapefile)
+        if gdf_meow.crs is None:
+            gdf_meow = gdf_meow.set_crs('EPSG:4326')
+        elif str(gdf_meow.crs) != 'EPSG:4326':
+            gdf_meow = gdf_meow.to_crs('EPSG:4326')
+        tqdm.pandas(desc="Assigning MEOW zones")
+        df['meow_zone'] = df.progress_apply(lambda row: assign_meow_zone(row['LATITUDE'], row['LONGITUDE'], gdf_meow), axis=1)
+    else:
+        print(f"MEOW shapefile not found at {meow_shapefile}, skipping.")
+        df['meow_zone'] = None
     save_output(df, output_csv)
     print("Output saved to", output_csv)
 
