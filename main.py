@@ -1,16 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import gc
-import re
-import sys
-import time
-import shutil
-import logging
+import os, gc, re, sys, time, shutil, logging, requests, traceback
 import ewstools
-import requests
-import traceback
 import absl.logging
 import numpy as np
 import pandas as pd
@@ -19,7 +11,6 @@ import ruptures as rpt
 import tensorflow as tf
 from tensorflow.keras import backend as K
 from tensorflow.keras.models import load_model
-from scipy.stats import linregress
 from joblib import Parallel, delayed, Memory
 from functools import partial
 from tqdm import tqdm
@@ -911,12 +902,12 @@ def create_summary_figure(results_df):
         print("Warning: Could not create summary figure - missing required columns")
         return
     plot_df = results_df.copy()
-    # Convert 'error', 'null', and cases with no transition year to 'no bifurcation' for visualization only
+    # Convert 'error', 'null', and cases with no transition year to 'no-bifurcation' for visualization only
     mask = (plot_df['tipping_point_type'].isin(['error', 'null'])) | (plot_df['transition_year'].isna())
-    plot_df.loc[mask, 'tipping_point_type'] = 'no bifurcation'
-    tipping_point_order = ['no bifurcation', 'fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation']
+    plot_df.loc[mask, 'tipping_point_type'] = 'no-bifurcation'
+    tipping_point_order = ['no-bifurcation', 'fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation']
     tipping_point_colors = {
-        'no bifurcation': '#999999',  # grey
+        'no-bifurcation': '#999999',  # grey
         'fold bifurcation': '#1f77b4',  # blue
         'transcritical bifurcation': '#ff7f0e',  # orange
         'Hopf bifurcation': '#9467bd'  # purple
@@ -1278,16 +1269,16 @@ def process_species(species_name, species_data, classifier_paths_500, classifier
         else:
             smoothing_avg = None
         if smoothing_avg is not None and abs(smoothing_avg - 1.0) < 1.0e-5: # Check if smoothing average is close to 1
-            save_results(species_name, 'no bifurcation', None, [], smoothing_avg, raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, raw_abundance.max(), 0.0,  # Zero probability for no bifurcation
+            save_results(species_name, 'no-bifurcation', None, [], smoothing_avg, raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, raw_abundance.max(), 0.0,  # Zero probability for no-bifurcation
                         taxonomic_group, dataset)  # Pass dataset
             return {
-                'species': species_name, 'dataset': dataset, 'tipping_point_type': 'no bifurcation', 'raw_tipping_point_type': 'no bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group, 'transition_year': None, 'smoothing_avg': smoothing_avg, 'current_abundance': raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, 'max_abundance': raw_abundance.max(), 'best_probability': 0.0
+                'species': species_name, 'dataset': dataset, 'tipping_point_type': 'no-bifurcation', 'raw_tipping_point_type': 'no-bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group, 'transition_year': None, 'smoothing_avg': smoothing_avg, 'current_abundance': raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, 'max_abundance': raw_abundance.max(), 'best_probability': 0.0
             }
         # Check if we have a valid transition point
         if transition_idx is None or transition_idx < 0 or transition_idx >= len(series_adjusted):
-            save_results(species_name, 'no bifurcation', None, [], smoothing_avg, raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, raw_abundance.max(), 0.0, taxonomic_group, dataset)  # Pass dataset
+            save_results(species_name, 'no-bifurcation', None, [], smoothing_avg, raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, raw_abundance.max(), 0.0, taxonomic_group, dataset)  # Pass dataset
             return {
-                'species': species_name, 'dataset': dataset, 'tipping_point_type': 'no bifurcation', 'raw_tipping_point_type': 'no bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group, 'transition_year': None, 'smoothing_avg': smoothing_avg, 'current_abundance': raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, 'max_abundance': raw_abundance.max(), 'best_probability': 0.0
+                'species': species_name, 'dataset': dataset, 'tipping_point_type': 'no-bifurcation', 'raw_tipping_point_type': 'no-bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group, 'transition_year': None, 'smoothing_avg': smoothing_avg, 'current_abundance': raw_abundance.iloc[-1] if len(raw_abundance) > 0 else 0, 'max_abundance': raw_abundance.max(), 'best_probability': 0.0
             }
         eval_index = int(0.9 * transition_idx) # Calculate evaluation index as 90% of transition index
         if eval_index < 0:
@@ -1299,8 +1290,8 @@ def process_species(species_name, species_data, classifier_paths_500, classifier
             tf.keras.backend.clear_session() # Clear TensorFlow session after each classifier to free memory
             gc.collect()
         best_probability = 0.0 # Use prediction at transition point and average all classifiers
-        raw_bifurcation_type = 'no bifurcation'
-        mean_probs = pd.Series([0, 0, 0, 1], index=[0, 1, 2, 3])  # Default to no bifurcation
+        raw_bifurcation_type = 'no-bifurcation'
+        mean_probs = pd.Series([0, 0, 0, 1], index=[0, 1, 2, 3])  # Default to no-bifurcation
         if len(ts.dl_preds) > 0:
             transition_time = series_adjusted['YEAR'].iloc[transition_idx] # Get the time value at the transition point
             valid_preds = ts.dl_preds[ts.dl_preds['time'] <= transition_time] # Find predictions at or before the transition point
@@ -1317,34 +1308,34 @@ def process_species(species_name, species_data, classifier_paths_500, classifier
                     print(f"Using single classifier prediction at transition time {transition_time_used}")
                 best_probability = mean_probs.max() # Get the best probability and corresponding class
                 pred_class = mean_probs.idxmax()
-                raw_bifurcation_type = bifurcation_map.get(pred_class, 'no bifurcation')
+                raw_bifurcation_type = bifurcation_map.get(pred_class, 'no-bifurcation')
                 print(f"Raw classification for {species_name}: {raw_bifurcation_type} (probability: {best_probability:.2g})")
                 final_bifurcation_type = raw_bifurcation_type # Apply threshold to determine final bifurcation type
                 print(f"Classification for {species_name}: {final_bifurcation_type} (probability: {best_probability:.2g})")
-            else: # No predictions before transition - use no bifurcation
+            else: # No predictions before transition - use no-bifurcation
                 mean_probs = pd.Series([0, 0, 0, 1], index=[0, 1, 2, 3])
-                raw_bifurcation_type = 'no bifurcation'
-                final_bifurcation_type = 'no bifurcation'
-                best_probability = 1.0  # Probability for no bifurcation
-                print(f"No valid predictions before transition for {species_name}, classifying as no bifurcation")
+                raw_bifurcation_type = 'no-bifurcation'
+                final_bifurcation_type = 'no-bifurcation'
+                best_probability = 1.0  # Probability for no-bifurcation
+                print(f"No valid predictions before transition for {species_name}, classifying as no-bifurcation")
         else:
             mean_probs = pd.Series([0, 0, 0, 1], index=[0, 1, 2, 3])
-            raw_bifurcation_type = 'no bifurcation'
-            final_bifurcation_type = 'no bifurcation'
-            best_probability = 1.0  # Probability for no bifurcation
-            print(f"No DL predictions generated for {species_name}, classifying as no bifurcation")
+            raw_bifurcation_type = 'no-bifurcation'
+            final_bifurcation_type = 'no-bifurcation'
+            best_probability = 1.0  # Probability for no-bifurcation
+            print(f"No DL predictions generated for {species_name}, classifying as no-bifurcation")
         transition_year = series['YEAR'].iloc[min(transition_idx, original_length-1)]
-        # Final validation - override to no bifurcation if conditions aren't met
+        # Final validation - override to no-bifurcation if conditions aren't met
         if (transition_idx is None or
             transition_year is None or
             pd.isna(transition_year) or
             not change_points or
             final_bifurcation_type in ['null', 'error'] or
             len(ts.dl_preds) == 0):
-            final_bifurcation_type = 'no bifurcation'
+            final_bifurcation_type = 'no-bifurcation'
             transition_year = None
             change_points = []
-            best_probability = 0.0 # Reset probability to 0 if we're forcing no bifurcation
+            best_probability = 0.0 # Reset probability to 0 if we're forcing no-bifurcation
         if species_to_plot is not None and (len(species_to_plot) == 0 or species_name in species_to_plot):
             plot_dl_predictions(ts, species_name, eval_index)
         pdf_species = ['Anaxyrus sp7', 'Alcyonium digitatum', 'Apostichopus parvimensis', 'Arphia']
@@ -1361,12 +1352,12 @@ def process_species(species_name, species_data, classifier_paths_500, classifier
         gc.collect()
         taxonomic_group_error = get_cached_taxonomic_group(species_name) # Get taxonomic group for error case too
         dataset_error = species_data['dataset'].iloc[0] if 'dataset' in species_data.columns else 'Unknown' # Get dataset for error case
-        try: # Save error result as no bifurcation with zero probability
-            save_results(species_name, 'no bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_error, dataset_error)
+        try: # Save error result as no-bifurcation with zero probability
+            save_results(species_name, 'no-bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_error, dataset_error)
         except Exception as save_error:
             print(f"Failed to save error result for {species_name}: {str(save_error)}")
         return {
-            'species': species_name, 'dataset': dataset_error, 'tipping_point_type': 'no bifurcation', 'raw_tipping_point_type': 'no bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group_error, 'transition_year': None, 'smoothing_avg': None, 'current_abundance': 0, 'max_abundance': 0, 'best_probability': 0.0
+            'species': species_name, 'dataset': dataset_error, 'tipping_point_type': 'no-bifurcation', 'raw_tipping_point_type': 'no-bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group_error, 'transition_year': None, 'smoothing_avg': None, 'current_abundance': 0, 'max_abundance': 0, 'best_probability': 0.0
         }
     finally:
         tf.keras.backend.clear_session() # Clear session at the end of processing each species
@@ -1439,17 +1430,17 @@ def get_remaining_species_count():
 def save_results(species_name, bifurcation_type, transition_year, change_points, smoothing_avg, current_abundance, max_abundance, best_probability, taxonomic_group, dataset):
     os.makedirs('csv', exist_ok=True)
     results_file = 'csv/bifurcation_results.csv'
-    # Check for all cases that should be considered "no bifurcation"
+    # Check for all cases that should be considered "no-bifurcation"
     if (bifurcation_type in ['error', 'null'] or
         transition_year is None or
         pd.isna(transition_year) or
         not change_points or  # Empty list
         len(change_points) == 0 or  # No change points
         (smoothing_avg is not None and abs(smoothing_avg - 1.0) < 1.0e-5)):  # Smoothing average close to 1
-        bifurcation_type = 'no bifurcation'
+        bifurcation_type = 'no-bifurcation'
         transition_year = None
         change_points = []
-        best_probability = 0.0  # Reset probability when forcing no bifurcation
+        best_probability = 0.0  # Reset probability when forcing no-bifurcation
     new_result = pd.DataFrame({
         'species': [species_name], 'dataset': [dataset], 'taxonomic_group': [taxonomic_group], 'tipping_point_type': [bifurcation_type], 'transition_year': [transition_year], 'change_points': [str(change_points)], 'smoothing_avg': [f"{smoothing_avg:.2g}" if smoothing_avg is not None else "NaN"], 'current_abundance': [current_abundance], 'max_abundance': [max_abundance], 'best_probability': [best_probability]
     })
@@ -1551,7 +1542,7 @@ def core_worker(core_id, full_data, classifier_paths_500, classifier_paths_1500,
                 if len(species_data) == 0:
                     print(f"Core {core_id}: No data found for {species_name}")
                     taxonomic_group_missing = get_cached_taxonomic_group(species_name)
-                    save_results(species_name, 'no bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_missing)
+                    save_results(species_name, 'no-bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_missing)
                     mark_batch_completed(core_id, [species_name])
                     continue
                 result = process_species(
@@ -1566,11 +1557,11 @@ def core_worker(core_id, full_data, classifier_paths_500, classifier_paths_1500,
                 print(f"Core {core_id} error processing {species_name}: {e}")
                 taxonomic_group_error = get_cached_taxonomic_group(species_name) # Get taxonomic group for error case
                 try: # Save error result immediately
-                    save_results(species_name, 'no bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_error)
+                    save_results(species_name, 'no-bifurcation', None, [], None, 0, 0, 0.0, taxonomic_group_error)
                 except Exception as save_error:
                     print(f"Core {core_id} failed to save error result for {species_name}: {save_error}")
                 error_result = { # Create error result for batch tracking
-                    'species': species_name, 'tipping_point_type': 'no bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group_error, 'transition_year': None, 'smoothing_avg': None, 'current_abundance': 0, 'max_abundance': 0, 'best_probability': 0.0
+                    'species': species_name, 'tipping_point_type': 'no-bifurcation', 'ews_metrics': {}, 'change_points': [], 'taxonomic_group': taxonomic_group_error, 'transition_year': None, 'smoothing_avg': None, 'current_abundance': 0, 'max_abundance': 0, 'best_probability': 0.0
                 }
                 batch_results.append(error_result)
                 processed_count += 1
@@ -1591,7 +1582,7 @@ def run_analysis_pipeline(min_records=100, force_reclassification=False, species
     classifier_names_1500 = [name for name in os.listdir(root_path_1500) if name.endswith('.pkl')]
     classifier_paths_1500 = [os.path.join(root_path_1500, name) for name in classifier_names_1500[:20]]
     bifurcation_map = {
-        0: 'fold bifurcation', 1: 'Hopf bifurcation', 2: 'transcritical bifurcation', 3: 'no bifurcation'
+        0: 'fold bifurcation', 1: 'Hopf bifurcation', 2: 'transcritical bifurcation', 3: 'no-bifurcation'
     }
     biotime_path = os.path.join(data_dir, 'biotime_v2_full_2025', 'biotime_v2_rawdata_2025.csv')
     rivfishtime_path = os.path.join(data_dir, 'RivFishTIME_1873_12_Dataset', '1873_2_RivFishTIME_SurveyTable.csv')

@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -37,9 +36,9 @@ def load_and_preprocess_bifurcation(threshold=0.3):
     df = df[df['transition_year'].notna()]
     df['species_short'] = df['species'].apply(preprocess_species_name)
     df['tipping_point_type'] = df.apply(
-        lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no bifurcation', axis=1
+        lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation', axis=1
     )
-    valid_types = ['fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation', 'no bifurcation']
+    valid_types = ['fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation', 'no-bifurcation']
     df = df[df['tipping_point_type'].isin(valid_types)]
     print(f"[bifurcation] Applied probability threshold {threshold} and kept species with transition_year:")
     print(f"- Total species: {len(df)}")
@@ -47,9 +46,9 @@ def load_and_preprocess_bifurcation(threshold=0.3):
     for tip_type in valid_types:
         count = (df['tipping_point_type'] == tip_type).sum()
         print(f"{tip_type}: {count} species")
-    n_hopf_before = (df['tipping_point_type'] == 'Hopf bifurcation').sum()
-    df = df[df['tipping_point_type'] != 'Hopf bifurcation']
-    print(f"- Excluded {n_hopf_before} Hopf bifurcation species from analysis (uncertain label)")
+    # n_hopf_before = (df['tipping_point_type'] == 'Hopf bifurcation').sum()
+    # df = df[df['tipping_point_type'] != 'Hopf bifurcation']
+    # print(f"- Excluded {n_hopf_before} Hopf bifurcation species from analysis (uncertain label)")
     if 'taxonomic_group' not in df.columns:
         print("ERROR: 'taxonomic_group' column missing from bifurcation data. Cannot proceed with random effects analysis.")
         sys.exit(1)
@@ -59,6 +58,118 @@ def load_and_preprocess_bifurcation(threshold=0.3):
     print(f"- Taxonomic groups available: {df['taxonomic_group'].nunique()}")
     return df
 
+def aggregate_small_categories(table, group_name, min_total=30):
+    if table.empty:
+        return table
+    row_totals = table.sum(axis=1)
+    if group_name == 'biome':
+        if 'Mixed' not in table.index:
+            return table
+        ref_row = 'Mixed'
+        new_rows = []
+        for r in table.index:
+            if r == ref_row:
+                continue
+            if row_totals[r] < min_total:
+                table.loc[ref_row] += table.loc[r]
+            else:
+                new_rows.append(r)
+        new_rows = [ref_row] + new_rows
+        table = table.loc[new_rows]
+    else:
+        small_rows = [r for r in table.index if row_totals[r] < min_total]
+        if len(small_rows) > 0:
+            mixed_counts = table.loc[small_rows].sum(axis=0)
+            table = table.drop(index=small_rows)
+            if 'Mixed' in table.index:
+                table.loc['Mixed'] += mixed_counts
+            else:
+                table.loc['Mixed'] = mixed_counts
+        if 'Mixed' in table.index:
+            ref_row = 'Mixed'
+            other_rows = [r for r in table.index if r != ref_row]
+            table = table.loc[[ref_row] + other_rows]
+    return table
+
+def aggregate_group_categories(df, group_col, group_name):
+    if group_name == 'koppen':
+        mapping = {
+            'Af': 'A', 'Am': 'A', 'As': 'A', 'Aw': 'A',
+            'BSh': 'B', 'BSk': 'B', 'BWh': 'B', 'BWk': 'B',
+            'Cfa': 'C', 'Cfb': 'C', 'Cfc': 'C', 'Csa': 'C', 'Csb': 'C', 'Cwa': 'C', 'Cwb': 'C',
+            'Dfa': 'D', 'Dfb': 'D', 'Dfc': 'D', 'Dsb': 'D', 'Dsc': 'D', 'Dwa': 'D', 'Dwb': 'D', 'Dwc': 'D',
+            'EF': 'E', 'ET': 'E'
+        }
+        df[group_col] = df[group_col].map(mapping).fillna(df[group_col])
+    elif group_name == 'taxonomic':
+        mapping = {
+            'Chloroplastida': 'Algae', 'Cryptophyta': 'Algae', 'Haptophyta': 'Algae', 'Ochrophyta': 'Algae', 'Rhodophyta': 'Algae',
+            'Ciliophora': 'Microbes', 'Euglenozoa': 'Microbes', 'Myzozoa': 'Microbes', 'Rhizaria': 'Microbes', 'Pancryptista': 'Microbes',
+            'Protists': 'Microbes',
+            'Brachiopoda': 'Mixed', 'Bryozoa': 'Mixed', 'Chaetognatha': 'Mixed',
+            'Cnidaria': 'Mixed', 'Ctenophora': 'Mixed', 'Nemertea': 'Mixed',
+            'Phoronida': 'Mixed', 'Platyhelminthes': 'Mixed', 'Porifera': 'Mixed',
+            'Rotifera': 'Mixed', 'Tunicata': 'Mixed', 'Polychaeta': 'Mixed',
+            'Arachnida': 'OtherArthropods', 'Branchiopoda': 'OtherArthropods', 'Chelicerata': 'OtherArthropods',
+            'Copepoda': 'OtherArthropods', 'Maxillopoda': 'OtherArthropods', 'Oligostraca': 'OtherArthropods', 'Thecostraca': 'OtherArthropods',
+            'Cephalochordata': 'Mixed', 'Elasmobranchii': 'Mixed', 'Lissamphibia': 'Mixed',
+            'Squamata': 'Mixed', 'Testudines': 'Mixed',
+            'Nematoda': 'Mixed', 'Hemichordata': 'Mixed', 'Bryophyta': 'Algae',
+            'Bacteria': 'Microbes', 'Fungi': 'Microbes',
+            'Annelida': 'Annelida', 'Actinopterygii': 'Actinopterygii', 'Aves': 'Aves', 'Mammalia': 'Mammalia',
+            'Tracheophyta': 'Tracheophyta', 'Hexapoda': 'Hexapoda', 'Malacostraca': 'Malacostraca',
+            'Echinodermata': 'Echinodermata', 'Mollusca': 'Mollusca'
+        }
+        df[group_col] = df[group_col].map(mapping).fillna(df[group_col])
+    return df
+
+def contingency_table_bifurcation(bif_df, group_col, group_name):
+    if group_col not in bif_df.columns or bif_df[group_col].isna().all():
+        print(f"{group_name} data not available, skipping contingency table.")
+        return None
+    if group_name in ['koppen', 'taxonomic']:
+        bif_df = aggregate_group_categories(bif_df.copy(), group_col, group_name)
+    table = pd.crosstab(bif_df[group_col], bif_df['tipping_point_type'])
+    if 'no-bifurcation' in table.columns:
+        cols = ['no-bifurcation'] + [c for c in table.columns if c != 'no-bifurcation']
+        table = table[cols]
+    if group_name == 'biome':
+        if 'Mixed/Generalist Habitats' in table.index:
+            table = table.rename(index={'Mixed/Generalist Habitats': 'Mixed'})
+        if 'Unknown/Unclassified' in table.index:
+            if 'Mixed' in table.index:
+                table.loc['Mixed'] += table.loc['Unknown/Unclassified']
+            else:
+                table.loc['Mixed'] = table.loc['Unknown/Unclassified']
+            table = table.drop(index='Unknown/Unclassified')
+    if group_name != 'biome' and 'Other' in table.index:
+        if 'Mixed' in table.index:
+            table.loc['Mixed'] += table.loc['Other']
+        else:
+            table.loc['Mixed'] = table.loc['Other']
+        table = table.drop(index='Other')
+    if 'Mixed' in table.index:
+        rows = ['Mixed'] + [r for r in table.index if r != 'Mixed']
+        table = table.loc[rows]
+    else:
+        row_totals = table.sum(axis=1)
+        max_row = row_totals.idxmax()
+        rows = [max_row] + [r for r in table.index if r != max_row]
+        table = table.loc[rows]
+    if table.shape[0] < 2:
+        print(f"Skipping {group_name}: only one row after aggregation.")
+        return None
+    print(f"\nContingency table ({group_name} x bifurcation type):")
+    print(table.to_string())
+    table.to_csv(f'csv/contingency_{group_name}_bifurcation.csv')
+    chi2, p, dof, expected = chi2_contingency(table)
+    print(f"\nChi-square test: chi2 = {chi2:.2g}, df = {dof}, p = {p:.2g}")
+    if (expected < 5).any():
+        print("Warning: Some expected frequencies are below 5. Chi-square approximation may be unreliable.")
+    bayesian_contingency_analysis(table, group_name)
+    return table
+
+## no aggregation
 def bayesian_contingency_analysis(table, group_name):
     if table.empty or table.shape[0] < 2 or table.shape[1] < 2:
         print(f"Bayesian contingency analysis skipped for {group_name}: table too small.")
@@ -71,19 +182,51 @@ def bayesian_contingency_analysis(table, group_name):
     col_codes = pd.Categorical(df_long['tipping_type'], categories=cols).codes
     n_rows = len(rows)
     n_cols = len(cols)
+    if group_name == 'biome':
+        draws = 2000
+        tune = 2000
+        target_accept = 0.95
+    elif group_name == 'koppen':
+        draws = 500
+        tune = 500
+        target_accept = 0.9
+    elif group_name == 'meow':
+        draws = 1000
+        tune = 1000
+        target_accept = 0.9
+    elif group_name == 'taxonomic':
+        draws = 1000
+        tune = 1000
+        target_accept = 0.9
+    else:
+        draws = 1000
+        tune = 1000
+        target_accept = 0.95
+    max_treedepth = 100
     with pm.Model() as model:
         mu = pm.Normal('mu', mu=0, sigma=5)
-        alpha = pm.Normal('alpha', mu=0, sigma=5, shape=n_rows)
-        beta = pm.Normal('beta', mu=0, sigma=5, shape=n_cols)
-        gamma = pm.Normal('gamma', mu=0, sigma=5, shape=(n_rows-1, n_cols-1))
+        alpha_offset = pm.Normal('alpha_offset', mu=0, sigma=1, shape=n_rows)
+        alpha = 5 * alpha_offset
+        beta_offset = pm.Normal('beta_offset', mu=0, sigma=1, shape=n_cols)
+        beta = 5 * beta_offset
+        sigma_gamma = pm.HalfNormal('sigma_gamma', sigma=2, shape=(n_rows-1, n_cols-1))
+        gamma_raw = pm.Normal('gamma_raw', mu=0, sigma=1, shape=(n_rows-1, n_cols-1))
+        gamma = gamma_raw * sigma_gamma
         alpha_ = alpha - alpha[0]
         beta_ = beta - beta[0]
         gamma_full = pt.zeros((n_rows, n_cols))
         gamma_full = pt.set_subtensor(gamma_full[1:, 1:], gamma)
         log_lambda = mu + alpha_[row_codes] + beta_[col_codes] + gamma_full[row_codes, col_codes]
         pm.Poisson('y_obs', mu=pm.math.exp(log_lambda), observed=df_long['count'].values)
-        step = pm.NUTS(target_accept=0.995, max_treedepth=15)
-        trace = pm.sample(draws=2000, tune=2000, cores=4, step=step, return_inferencedata=True, random_seed=seed)
+        step = pm.NUTS(target_accept=target_accept, max_treedepth=max_treedepth)
+        trace = pm.sample(draws=draws, tune=tune, cores=4, step=step, return_inferencedata=True, random_seed=seed)
+    print(f"\nConvergence diagnostics for {group_name}:")
+    for param in ['mu', 'alpha_offset', 'beta_offset', 'gamma_raw', 'sigma_gamma']:
+        if param in trace.posterior:
+            rhat_val = az.rhat(trace, var_names=[param], method='rank').to_array().values.max()
+            ess_bulk = az.ess(trace, var_names=[param], method='bulk').to_array().values.min()
+            ess_tail = az.ess(trace, var_names=[param], method='tail').to_array().values.min()
+            print(f"  {param}: Rhat={rhat_val:.4g}, bulk-ESS={ess_bulk:.2g}, tail-ESS={ess_tail:.2g}")
     posterior = trace.posterior
     odds_ratios = {}
     for i in range(n_rows):
@@ -98,55 +241,493 @@ def bayesian_contingency_analysis(table, group_name):
                 or_mean = 1.0
                 or_hdi = (1.0, 1.0)
             else:
-                gamma_samples = posterior['gamma'].values[:, :, i-1, j-1].reshape(-1)
+                gamma_raw_samples = posterior['gamma_raw'].values[:, :, i-1, j-1].reshape(-1)
+                sigma_gamma_samples = posterior['sigma_gamma'].values[:, :, i-1, j-1].reshape(-1)
+                gamma_samples = gamma_raw_samples * sigma_gamma_samples
                 or_samples = np.exp(gamma_samples)
                 or_mean = np.mean(or_samples)
                 or_hdi = az.hdi(or_samples, hdi_prob=0.95)
             odds_ratios[(rows[i], cols[j])] = {'mean': or_mean, 'lower': or_hdi[0], 'upper': or_hdi[1]}
+    df_odds = pd.DataFrame([
+        {'group': r, 'tipping_type': c, 'odds_ratio_mean': v['mean'], 'odds_ratio_lower': v['lower'], 'odds_ratio_upper': v['upper']}
+        for (r, c), v in odds_ratios.items()
+    ])
+    df_odds.to_csv(f'csv/odds_ratios_{group_name}.csv', index=False, float_format='%.2g')
+    print(f"Odds ratios saved to csv/odds_ratios_{group_name}.csv")
+    print("Odds ratios:")
+    for (r, c), v in odds_ratios.items():
+        if r == rows[0] and c == cols[0]:
+            continue
+        print(f"  {r} - {c}: mean = {v['mean']:.2g} (95% HDI [{v['lower']:.2g}, {v['upper']:.2g}])")
     set_plot_style()
-    labels = []
-    means = []
-    lowers = []
-    uppers = []
+    plot_items = []
     for (r, c), vals in odds_ratios.items():
         if r == rows[0] and c == cols[0]:
             continue
-        labels.append(f"{r} - {c}")
-        means.append(vals['mean'])
-        lowers.append(vals['lower'])
-        uppers.append(vals['upper'])
-    if len(labels) == 0:
+        tip_abbr = c.replace('Hopf bifurcation', 'Hopf bif.').replace('fold bifurcation', 'Fold bif.').replace('transcritical bifurcation', 'Transc. bif.').replace('no-bifurcation', 'no-bif.')
+        row_display = r
+        if group_name == 'biome':
+            bio_map = {
+                'Boreal Forests/Taiga': 'Bor. Forests/Taiga',
+                'Deserts & Xeric Shrublands': 'Des. & Xer. Shrublands',
+                'Flooded Grasslands & Savannas': 'Flood. Grass. & Sav.',
+                'Large Lake Ecosystems': 'Large Lake Ecos.',
+                'Large River Delta Ecosystems': 'Large River Delta Ecos.',
+                'Large River Ecosystems': 'Large River Ecos.',
+                'Mangroves': 'Mangroves',
+                'Mediterranean Forests, Woodlands & Scrub': 'Med. Forests, Wood. & Scrub',
+                'Mixed': 'Mixed',
+                'Polar Ecoregions': 'Polar Ecoregions',
+                'Small Lake Ecosystems': 'Small Lake Ecos.',
+                'Small River Ecosystems': 'Small River Ecos.',
+                'Temperate Broadleaf & Mixed Forests': 'Temp. Broadleaf & Mixed For.',
+                'Temperate Coniferous Forests': 'Temp. Conif. For.',
+                'Temperate Grasslands, Savannas & Shrublands': 'Temp. Grass., Sav. & Shrub.',
+                'Temperate Shelf & Seas': 'Temp. Shelf & Seas',
+                'Tropical & Subtropical Dry Broadleaf Forests': 'Trop. & Subtrop. Dry Broadleaf For.',
+                'Tropical & Subtropical Grasslands, Savannas & Shrublands': 'Trop. & Subtrop. Grass., Sav. & Shrub.',
+                'Tropical & Subtropical Moist Broadleaf Forests': 'Trop. & Subtrop. Moist Broadleaf For.',
+                'Tropical Coral Reefs': 'Trop. Coral Reefs',
+                'Tundra': 'Tundra'
+            }
+            row_display = bio_map.get(r, r)
+        plot_items.append((row_display, tip_abbr, vals['mean'], vals['lower'], vals['upper']))
+    ref_row_display = rows[0]
+    if group_name == 'biome':
+        ref_row_display = bio_map.get(rows[0], rows[0])
+    if group_name == 'meow':
+        custom_order = ['Arctic', 'Temperate Northern Atlantic', 'Temperate Northern Pacific', 'Tropical Atlantic', 'Tropical Eastern Pacific', 'Central Indo-Pacific', 'Western Indo-Pacific', 'Eastern Indo-Pacific', 'Temperate Australasia', 'Temperate Southern Africa', 'Temperate South America', 'Southern Ocean']
+        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+    elif group_name == 'taxonomic':
+        custom_order = ['Microbes', 'Algae', 'Tracheophyta', 'Echinodermata', 'Actinopterygii', 'Aves', 'Mammalia', 'Annelida', 'Mollusca', 'OtherArthropods', 'Malacostraca', 'Hexapoda', 'Mixed']
+        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+    else:
+        plot_items.sort(key=lambda x: x[0])
+    ref_items = [item for item in plot_items if item[0] == ref_row_display]
+    other_items = [item for item in plot_items if item[0] != ref_row_display]
+    plot_items = other_items + ref_items
+    if len(plot_items) == 0:
         print(f"No odds ratios to plot for {group_name}")
         return
-    y_pos = np.arange(len(labels))
+    labels = [f"{item[0]} - {item[1]}" for item in plot_items]
+    means = [item[2] for item in plot_items]
+    lowers = [item[3] for item in plot_items]
+    uppers = [item[4] for item in plot_items]
+    y_pos = np.arange(len(labels)-1, -1, -1)
     fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
     for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
-        ax.plot(mean, i, 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
-        ax.hlines(i, low, high, color='black', linewidth=1.5)
+        ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+        ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
     ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels)
-    ax.set_xlabel('Odds Ratio (reference: first row + first column)')
-    ax.set_xlim(0, max(max(uppers) * 1.1, 2.0))
-    ax.set_ylim(-0.5, len(labels) - 0.5)
+    ax.set_xlabel('Odds Ratio')
+    ax.set_xlim(0, 4)
+    ax.set_ylim(-0.5, len(labels)-0.5)
     plt.tight_layout()
     plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
     plt.close()
 
-def contingency_table_bifurcation(bif_df, group_col, group_name):
-    if group_col not in bif_df.columns or bif_df[group_col].isna().all():
-        print(f"{group_name} data not available, skipping contingency table.")
-        return None
-    table = pd.crosstab(bif_df[group_col], bif_df['tipping_point_type'])
-    print(f"\nContingency table ({group_name} x bifurcation type):")
-    print(table.to_string())
-    table.to_csv(f'csv/contingency_{group_name}_bifurcation.csv')
-    chi2, p, dof, expected = chi2_contingency(table)
-    print(f"\nChi-square test: chi2 = {chi2:.3g}, df = {dof}, p = {p:.3g}")
-    if (expected < 5).any():
-        print("Warning: Some expected frequencies are below 5. Chi-square approximation may be unreliable.")
-    bayesian_contingency_analysis(table, group_name)
-    return table
+## aggregation
+#def bayesian_contingency_analysis(table, group_name):
+#    if table.empty or table.shape[0] < 2 or table.shape[1] < 2:
+#        print(f"Bayesian contingency analysis skipped for {group_name}: table too small.")
+#        return
+#    rows = table.index.tolist()
+#    cols = table.columns.tolist()
+#    df_long = table.reset_index().melt(id_vars=table.index.name, var_name='tipping_type', value_name='count')
+#    df_long = df_long[df_long['count'] > 0]
+#    row_codes = pd.Categorical(df_long[table.index.name], categories=rows).codes
+#    col_codes = pd.Categorical(df_long['tipping_type'], categories=cols).codes
+#    n_rows = len(rows)
+#    n_cols = len(cols)
+#    if group_name == 'biome':
+#        draws = 2000
+#        tune = 2000
+#        target_accept = 0.95
+#    elif group_name == 'koppen':
+#        draws = 500
+#        tune = 500
+#        target_accept = 0.9
+#    elif group_name == 'meow':
+#        draws = 1000
+#        tune = 1000
+#        target_accept = 0.9
+#    elif group_name == 'taxonomic':
+#        draws = 1000
+#        tune = 1000
+#        target_accept = 0.9
+#    else:
+#        draws = 1000
+#        tune = 1000
+#        target_accept = 0.95
+#    max_treedepth = 100
+#    with pm.Model() as model:
+#        mu = pm.Normal('mu', mu=0, sigma=5)
+#        alpha_offset = pm.Normal('alpha_offset', mu=0, sigma=1, shape=n_rows)
+#        alpha = 5 * alpha_offset
+#        beta_offset = pm.Normal('beta_offset', mu=0, sigma=1, shape=n_cols)
+#        beta = 5 * beta_offset
+#        sigma_gamma = pm.HalfNormal('sigma_gamma', sigma=2, shape=(n_rows-1, n_cols-1))
+#        gamma_raw = pm.Normal('gamma_raw', mu=0, sigma=1, shape=(n_rows-1, n_cols-1))
+#        gamma = gamma_raw * sigma_gamma
+#        alpha_ = alpha - alpha[0]
+#        beta_ = beta - beta[0]
+#        gamma_full = pt.zeros((n_rows, n_cols))
+#        gamma_full = pt.set_subtensor(gamma_full[1:, 1:], gamma)
+#        log_lambda = mu + alpha_[row_codes] + beta_[col_codes] + gamma_full[row_codes, col_codes]
+#        pm.Poisson('y_obs', mu=pm.math.exp(log_lambda), observed=df_long['count'].values)
+#        step = pm.NUTS(target_accept=target_accept, max_treedepth=max_treedepth)
+#        trace = pm.sample(draws=draws, tune=tune, cores=4, step=step, return_inferencedata=True, random_seed=seed)
+#    print(f"\nConvergence diagnostics for {group_name}:")
+#    for param in ['mu', 'alpha_offset', 'beta_offset', 'gamma_raw', 'sigma_gamma']:
+#        if param in trace.posterior:
+#            rhat_val = az.rhat(trace, var_names=[param], method='rank').to_array().values.max()
+#            ess_bulk = az.ess(trace, var_names=[param], method='bulk').to_array().values.min()
+#            ess_tail = az.ess(trace, var_names=[param], method='tail').to_array().values.min()
+#            print(f"  {param}: Rhat={rhat_val:.4g}, bulk-ESS={ess_bulk:.2g}, tail-ESS={ess_tail:.2g}")
+#    posterior = trace.posterior
+#    odds_ratios = {}
+#    for i in range(n_rows):
+#        for j in range(n_cols):
+#            if i == 0 and j == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            elif i == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            elif j == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            else:
+#                gamma_raw_samples = posterior['gamma_raw'].values[:, :, i-1, j-1].reshape(-1)
+#                sigma_gamma_samples = posterior['sigma_gamma'].values[:, :, i-1, j-1].reshape(-1)
+#                gamma_samples = gamma_raw_samples * sigma_gamma_samples
+#                or_samples = np.exp(gamma_samples)
+#                or_mean = np.mean(or_samples)
+#                or_hdi = az.hdi(or_samples, hdi_prob=0.95)
+#            odds_ratios[(rows[i], cols[j])] = {'mean': or_mean, 'lower': or_hdi[0], 'upper': or_hdi[1]}
+#    df_odds = pd.DataFrame([
+#        {'group': r, 'tipping_type': c, 'odds_ratio_mean': v['mean'], 'odds_ratio_lower': v['lower'], 'odds_ratio_upper': v['upper']}
+#        for (r, c), v in odds_ratios.items()
+#    ])
+#    df_odds.to_csv(f'csv/odds_ratios_{group_name}.csv', index=False, float_format='%.2g')
+#    print(f"Odds ratios saved to csv/odds_ratios_{group_name}.csv")
+#    print("Odds ratios:")
+#    for (r, c), v in odds_ratios.items():
+#        if r == rows[0] and c == cols[0]:
+#            continue
+#        print(f"  {r} - {c}: mean = {v['mean']:.2g} (95% HDI [{v['lower']:.2g}, {v['upper']:.2g}])")
+#    set_plot_style()
+#    plot_items = []
+#    for (r, c), vals in odds_ratios.items():
+#        if r == rows[0] and c == cols[0]:
+#            continue
+#        tip_abbr = c.replace('Hopf bifurcation', 'Hopf bif.').replace('fold bifurcation', 'Fold bif.').replace('transcritical bifurcation', 'Transc. bif.').replace('no-bifurcation', 'no-bif.')
+#        row_display = r
+#        parent_map = {}
+#        if group_name == 'biome':
+#            parent_map = {
+#                'Boreal Forests/Taiga': 'Forests', 'Temperate Broadleaf & Mixed Forests': 'Forests', 'Temperate Coniferous Forests': 'Forests',
+#                'Temperate Grasslands, Savannas & Shrublands': 'Grasslands', 'Tropical & Subtropical Grasslands, Savannas & Shrublands': 'Grasslands',
+#                'Flooded Grasslands & Savannas': 'Grasslands',
+#                'Large Lake Ecosystems': 'Lakes', 'Small Lake Ecosystems': 'Lakes',
+#                'Large River Ecosystems': 'Rivers', 'Small River Ecosystems': 'Rivers', 'Large River Delta Ecosystems': 'Rivers',
+#                'Deserts & Xeric Shrublands': 'Deserts & Shrublands',
+#                'Polar Ecoregions': 'Polar', 'Tundra': 'Polar',
+#                'Temperate Shelf & Seas': 'Marine', 'Tropical Coral Reefs': 'Marine',
+#                'Mangroves': 'Wetlands',
+#                'Mediterranean Forests, Woodlands & Scrub': 'Mediterranean',
+#                'Tropical & Subtropical Dry Broadleaf Forests': 'Dry Forests',
+#                'Tropical & Subtropical Moist Broadleaf Forests': 'Rainforests',
+#                'Mixed': 'Mixed'
+#            }
+#            row_display = parent_map.get(r, r)
+#        elif group_name == 'meow':
+#            parent_map = {
+#                'Arctic': 'Arctic',
+#                'Temperate Northern Atlantic': 'North Temperate Atlantic',
+#                'Temperate Northern Pacific': 'North Temperate Pacific',
+#                'Temperate South America': 'South Temperate',
+#                'Temperate Southern Africa': 'South Temperate',
+#                'Temperate Australasia': 'South Temperate',
+#                'Southern Ocean': 'Southern Ocean',
+#                'Tropical Atlantic': 'Tropical Atlantic',
+#                'Tropical Eastern Pacific': 'Tropical Eastern Pacific',
+#                'Central Indo-Pacific': 'Indo-Pacific',
+#                'Western Indo-Pacific': 'Indo-Pacific',
+#                'Eastern Indo-Pacific': 'Indo-Pacific'
+#            }
+#            row_display = parent_map.get(r, r)
+#        elif group_name == 'taxonomic':
+#            parent_map = {
+#                'Actinopterygii': 'Chordates', 'Aves': 'Chordates', 'Mammalia': 'Chordates',
+#                'Hexapoda': 'Arthropods', 'Malacostraca': 'Arthropods', 'OtherArthropods': 'Arthropods',
+#                'Annelida': 'Invertebrates', 'Mollusca': 'Invertebrates', 'Echinodermata': 'Invertebrates',
+#                'Tracheophyta': 'Plants', 'Algae': 'Plants',
+#                'Microbes': 'Microbes',
+#                'Mixed': 'Mixed'
+#            }
+#            row_display = parent_map.get(r, r)
+#        else:
+#            row_display = r
+#        plot_items.append((row_display, tip_abbr, vals['mean'], vals['lower'], vals['upper']))
+#    if group_name in ['biome', 'meow', 'taxonomic']:
+#        agg_dict = {}
+#        for parent, tip, mean, low, high in plot_items:
+#            key = (parent, tip)
+#            if key not in agg_dict:
+#                agg_dict[key] = {'means': [], 'lows': [], 'highs': []}
+#            agg_dict[key]['means'].append(mean)
+#            agg_dict[key]['lows'].append(low)
+#            agg_dict[key]['highs'].append(high)
+#        plot_items = []
+#        for (parent, tip), vals in agg_dict.items():
+#            log_means = np.log(vals['means'])
+#            mean_agg = np.exp(np.mean(log_means))
+#            low_agg = np.min(vals['lows'])
+#            high_agg = np.max(vals['highs'])
+#            plot_items.append((parent, tip, mean_agg, low_agg, high_agg))
+#    plot_items = list({(p, t): (p, t, m, l, h) for p, t, m, l, h in plot_items}.values())
+#    ref_row_display = rows[0]
+#    if group_name == 'biome':
+#        ref_row_display = parent_map.get(rows[0], rows[0])
+#    if group_name == 'meow':
+#        custom_order = ['Arctic', 'North Temperate Atlantic', 'North Temperate Pacific', 'Tropical Atlantic', 'Tropical Eastern Pacific', 'Indo-Pacific', 'South Temperate', 'Southern Ocean']
+#        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+#    elif group_name == 'taxonomic':
+#        custom_order = ['Microbes', 'Plants', 'Arthropods', 'Chordates', 'Invertebrates', 'Mixed']
+#        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+#    else:
+#        plot_items.sort(key=lambda x: x[0])
+#    ref_items = [item for item in plot_items if item[0] == ref_row_display]
+#    other_items = [item for item in plot_items if item[0] != ref_row_display]
+#    plot_items = other_items + ref_items
+#    if len(plot_items) == 0:
+#        print(f"No odds ratios to plot for {group_name}")
+#        return
+#    labels = [f"{item[0]} - {item[1]}" for item in plot_items]
+#    means = [item[2] for item in plot_items]
+#    lowers = [item[3] for item in plot_items]
+#    uppers = [item[4] for item in plot_items]
+#    y_pos = np.arange(len(labels)-1, -1, -1)
+#    fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
+#    for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
+#        ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+#        ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
+#    ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+#    ax.set_yticks(y_pos)
+#    ax.set_yticklabels(labels)
+#    ax.set_xlabel('Odds Ratio')
+#    ax.set_xlim(0, 4)
+#    ax.set_ylim(-0.5, len(labels)-0.5)
+#    plt.tight_layout()
+#    plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
+#    plt.close()
+
+#import itertools
+
+#_CONVERGED_PARAMS = {}
+
+#def _find_convergent_params(table, group_name, rows, cols, df_long, row_codes, col_codes, n_rows, n_cols):
+#    if group_name in _CONVERGED_PARAMS:
+#        return _CONVERGED_PARAMS[group_name]
+#    sigma_priors = [
+#        ('HalfNormal', lambda: pm.HalfNormal('sigma_gamma', sigma=2, shape=(n_rows-1, n_cols-1))),
+#        ('HalfCauchy', lambda: pm.HalfCauchy('sigma_gamma', beta=1, shape=(n_rows-1, n_cols-1)))
+#    ]
+#    gamma_priors = [
+#        ('Normal', lambda: pm.Normal('gamma_raw', mu=0, sigma=1, shape=(n_rows-1, n_cols-1))),
+#        ('Laplace', lambda: pm.Laplace('gamma_raw', mu=0, b=1, shape=(n_rows-1, n_cols-1)))
+#    ]
+#    draws_list = [500, 1000, 1500, 2000, 2500, 3000, 3500, 4000]
+#    target_accept_list = [0.9, 0.95, 0.999]
+#    best_params = None
+#    for (sigma_name, sigma_fn), (gamma_name, gamma_fn) in itertools.product(sigma_priors, gamma_priors):
+#        for target_accept in target_accept_list:
+#            for draws in draws_list:
+#                tune = draws
+#                print(f"Trying {group_name}: sigma={sigma_name}, gamma={gamma_name}, target_accept={target_accept}, draws={draws}")
+#                with pm.Model() as model:
+#                    mu = pm.Normal('mu', mu=0, sigma=5)
+#                    alpha_offset = pm.Normal('alpha_offset', mu=0, sigma=1, shape=n_rows)
+#                    alpha = 5 * alpha_offset
+#                    beta_offset = pm.Normal('beta_offset', mu=0, sigma=1, shape=n_cols)
+#                    beta = 5 * beta_offset
+#                    sigma_gamma = sigma_fn()
+#                    gamma_raw = gamma_fn()
+#                    gamma = gamma_raw * sigma_gamma
+#                    alpha_ = alpha - alpha[0]
+#                    beta_ = beta - beta[0]
+#                    gamma_full = pt.zeros((n_rows, n_cols))
+#                    gamma_full = pt.set_subtensor(gamma_full[1:, 1:], gamma)
+#                    log_lambda = mu + alpha_[row_codes] + beta_[col_codes] + gamma_full[row_codes, col_codes]
+#                    pm.Poisson('y_obs', mu=pm.math.exp(log_lambda), observed=df_long['count'].values)
+#                    step = pm.NUTS(target_accept=target_accept, max_treedepth=100)
+#                    trace = pm.sample(draws=draws, tune=tune, cores=4, step=step, return_inferencedata=True, random_seed=seed)
+#                divergences = trace.sampling_stats['diverging'].sum() if hasattr(trace, 'sampling_stats') else 0
+#                params_to_check = ['mu', 'alpha_offset', 'beta_offset', 'gamma_raw', 'sigma_gamma']
+#                rhat_max = 0.0
+#                min_ess_bulk = float('inf')
+#                min_ess_tail = float('inf')
+#                for p in params_to_check:
+#                    if p in trace.posterior:
+#                        rhat_val = az.rhat(trace, var_names=[p], method='rank').to_array().values.max()
+#                        rhat_max = max(rhat_max, rhat_val)
+#                        # Compute per‑chain ESS and take the minimum
+#                        ess_bulk_chain = az.ess(trace, var_names=[p], method='bulk').to_array().values
+#                        ess_tail_chain = az.ess(trace, var_names=[p], method='tail').to_array().values
+#                        min_ess_bulk = min(min_ess_bulk, np.min(ess_bulk_chain))
+#                        min_ess_tail = min(min_ess_tail, np.min(ess_tail_chain))
+#                if divergences == 0 and rhat_max < 1.01 and min_ess_bulk > 200 and min_ess_tail > 200:
+#                    print(f"Converged! Using sigma={sigma_name}, gamma={gamma_name}, target_accept={target_accept}, draws={draws}")
+#                    best_params = {'sigma_fn': sigma_fn, 'gamma_fn': gamma_fn, 'target_accept': target_accept, 'draws': draws, 'tune': draws}
+#                    _CONVERGED_PARAMS[group_name] = best_params
+#                    return best_params
+#    if best_params is None:
+#        print(f"Warning: No convergent combination found for {group_name}. Using defaults (draws=2000, tune=2000, target_accept=0.999).")
+#        best_params = {'sigma_fn': sigma_priors[0][1], 'gamma_fn': gamma_priors[0][1], 'target_accept': 0.999, 'draws': 2000, 'tune': 2000}
+#        _CONVERGED_PARAMS[group_name] = best_params
+#    return best_params
+
+#def bayesian_contingency_analysis(table, group_name):
+#    if table.empty or table.shape[0] < 2 or table.shape[1] < 2:
+#        print(f"Bayesian contingency analysis skipped for {group_name}: table too small.")
+#        return
+#    rows = table.index.tolist()
+#    cols = table.columns.tolist()
+#    df_long = table.reset_index().melt(id_vars=table.index.name, var_name='tipping_type', value_name='count')
+#    df_long = df_long[df_long['count'] > 0]
+#    row_codes = pd.Categorical(df_long[table.index.name], categories=rows).codes
+#    col_codes = pd.Categorical(df_long['tipping_type'], categories=cols).codes
+#    n_rows = len(rows)
+#    n_cols = len(cols)
+#    # Use adaptive search for all models
+#    params = _find_convergent_params(table, group_name, rows, cols, df_long, row_codes, col_codes, n_rows, n_cols)
+#    with pm.Model() as model:
+#        mu = pm.Normal('mu', mu=0, sigma=5)
+#        alpha_offset = pm.Normal('alpha_offset', mu=0, sigma=1, shape=n_rows)
+#        alpha = 5 * alpha_offset
+#        beta_offset = pm.Normal('beta_offset', mu=0, sigma=1, shape=n_cols)
+#        beta = 5 * beta_offset
+#        sigma_gamma = params['sigma_fn']()
+#        gamma_raw = params['gamma_fn']()
+#        gamma = gamma_raw * sigma_gamma
+#        alpha_ = alpha - alpha[0]
+#        beta_ = beta - beta[0]
+#        gamma_full = pt.zeros((n_rows, n_cols))
+#        gamma_full = pt.set_subtensor(gamma_full[1:, 1:], gamma)
+#        log_lambda = mu + alpha_[row_codes] + beta_[col_codes] + gamma_full[row_codes, col_codes]
+#        pm.Poisson('y_obs', mu=pm.math.exp(log_lambda), observed=df_long['count'].values)
+#        step = pm.NUTS(target_accept=params['target_accept'], max_treedepth=100)
+#        trace = pm.sample(draws=params['draws'], tune=params['tune'], cores=4, step=step, return_inferencedata=True, random_seed=seed)
+#    print(f"\nConvergence diagnostics for {group_name}:")
+#    for param in ['mu', 'alpha_offset', 'beta_offset', 'gamma_raw', 'sigma_gamma']:
+#        if param in trace.posterior:
+#            rhat_val = az.rhat(trace, var_names=[param], method='rank').to_array().values.max()
+#            ess_bulk = az.ess(trace, var_names=[param], method='bulk').to_array().values.min()
+#            ess_tail = az.ess(trace, var_names=[param], method='tail').to_array().values.min()
+#            print(f"  {param}: Rhat={rhat_val:.4g}, bulk-ESS={ess_bulk:.2g}, tail-ESS={ess_tail:.2g}")
+#    posterior = trace.posterior
+#    odds_ratios = {}
+#    for i in range(n_rows):
+#        for j in range(n_cols):
+#            if i == 0 and j == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            elif i == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            elif j == 0:
+#                or_mean = 1.0
+#                or_hdi = (1.0, 1.0)
+#            else:
+#                gamma_raw_samples = posterior['gamma_raw'].values[:, :, i-1, j-1].reshape(-1)
+#                sigma_gamma_samples = posterior['sigma_gamma'].values[:, :, i-1, j-1].reshape(-1)
+#                gamma_samples = gamma_raw_samples * sigma_gamma_samples
+#                or_samples = np.exp(gamma_samples)
+#                or_mean = np.mean(or_samples)
+#                or_hdi = az.hdi(or_samples, hdi_prob=0.95)
+#            odds_ratios[(rows[i], cols[j])] = {'mean': or_mean, 'lower': or_hdi[0], 'upper': or_hdi[1]}
+#    df_odds = pd.DataFrame([
+#        {'group': r, 'tipping_type': c, 'odds_ratio_mean': v['mean'], 'odds_ratio_lower': v['lower'], 'odds_ratio_upper': v['upper']}
+#        for (r, c), v in odds_ratios.items()
+#    ])
+#    df_odds.to_csv(f'csv/odds_ratios_{group_name}.csv', index=False, float_format='%.2g')
+#    print(f"Odds ratios saved to csv/odds_ratios_{group_name}.csv")
+#    print("Odds ratios:")
+#    for (r, c), v in odds_ratios.items():
+#        if r == rows[0] and c == cols[0]:
+#            continue
+#        print(f"  {r} - {c}: mean = {v['mean']:.2g} (95% HDI [{v['lower']:.2g}, {v['upper']:.2g}])")
+#    set_plot_style()
+#    plot_items = []
+#    for (r, c), vals in odds_ratios.items():
+#        if r == rows[0] and c == cols[0]:
+#            continue
+#        tip_abbr = c.replace('Hopf bifurcation', 'Hopf bif.').replace('fold bifurcation', 'Fold bif.').replace('transcritical bifurcation', 'Transc. bif.').replace('no-bifurcation', 'no-bif.')
+#        row_display = r
+#        if group_name == 'biome':
+#            bio_map = {
+#                'Boreal Forests/Taiga': 'Bor. Forests/Taiga',
+#                'Deserts & Xeric Shrublands': 'Des. & Xer. Shrublands',
+#                'Flooded Grasslands & Savannas': 'Flood. Grass. & Sav.',
+#                'Large Lake Ecosystems': 'Large Lake Ecos.',
+#                'Large River Delta Ecosystems': 'Large River Delta Ecos.',
+#                'Large River Ecosystems': 'Large River Ecos.',
+#                'Mangroves': 'Mangroves',
+#                'Mediterranean Forests, Woodlands & Scrub': 'Med. Forests, Wood. & Scrub',
+#                'Mixed': 'Mixed',
+#                'Polar Ecoregions': 'Polar Ecoregions',
+#                'Small Lake Ecosystems': 'Small Lake Ecos.',
+#                'Small River Ecosystems': 'Small River Ecos.',
+#                'Temperate Broadleaf & Mixed Forests': 'Temp. Broadleaf & Mixed For.',
+#                'Temperate Coniferous Forests': 'Temp. Conif. For.',
+#                'Temperate Grasslands, Savannas & Shrublands': 'Temp. Grass., Sav. & Shrub.',
+#                'Temperate Shelf & Seas': 'Temp. Shelf & Seas',
+#                'Tropical & Subtropical Dry Broadleaf Forests': 'Trop. & Subtrop. Dry Broadleaf For.',
+#                'Tropical & Subtropical Grasslands, Savannas & Shrublands': 'Trop. & Subtrop. Grass., Sav. & Shrub.',
+#                'Tropical & Subtropical Moist Broadleaf Forests': 'Trop. & Subtrop. Moist Broadleaf For.',
+#                'Tropical Coral Reefs': 'Trop. Coral Reefs',
+#                'Tundra': 'Tundra'
+#            }
+#            row_display = bio_map.get(r, r)
+#        plot_items.append((row_display, tip_abbr, vals['mean'], vals['lower'], vals['upper']))
+#    ref_row_display = rows[0]
+#    if group_name == 'biome':
+#        ref_row_display = bio_map.get(rows[0], rows[0])
+#    if group_name == 'meow':
+#        custom_order = ['Arctic', 'Temperate Northern Atlantic', 'Temperate Northern Pacific', 'Tropical Atlantic', 'Tropical Eastern Pacific', 'Central Indo-Pacific', 'Western Indo-Pacific', 'Eastern Indo-Pacific', 'Temperate Australasia', 'Temperate Southern Africa', 'Temperate South America', 'Southern Ocean']
+#        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+#    elif group_name == 'taxonomic':
+#        custom_order = ['Microbes', 'Algae', 'Tracheophyta', 'Echinodermata', 'Actinopterygii', 'Aves', 'Mammalia', 'Annelida', 'Mollusca', 'OtherArthropods', 'Malacostraca', 'Hexapoda', 'Mixed']
+#        plot_items.sort(key=lambda x: custom_order.index(x[0]) if x[0] in custom_order else 999)
+#    else:
+#        plot_items.sort(key=lambda x: x[0])
+#    ref_items = [item for item in plot_items if item[0] == ref_row_display]
+#    other_items = [item for item in plot_items if item[0] != ref_row_display]
+#    plot_items = other_items + ref_items
+#    if len(plot_items) == 0:
+#        print(f"No odds ratios to plot for {group_name}")
+#        return
+#    labels = [f"{item[0]} - {item[1]}" for item in plot_items]
+#    means = [item[2] for item in plot_items]
+#    lowers = [item[3] for item in plot_items]
+#    uppers = [item[4] for item in plot_items]
+#    y_pos = np.arange(len(labels)-1, -1, -1)
+#    fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
+#    for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
+#        ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+#        ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
+#    ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+#    ax.set_yticks(y_pos)
+#    ax.set_yticklabels(labels)
+#    ax.set_xlabel('Odds Ratio')
+#    ax.set_xlim(0, 4)
+#    ax.set_ylim(-0.5, len(labels)-0.5)
+#    plt.tight_layout()
+#    plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
+#    plt.close()
 
 def load_and_preprocess_invasive():
     df = pd.read_csv('csv/invasive_species.csv', dtype=str)
@@ -221,6 +802,23 @@ def load_and_preprocess_biome():
     print(f"[biome] Loaded {len(dedup)} species with biome information.")
     return dedup
 
+KOPPEN_CODE_TO_ABBR = {
+    11: 'Af', 12: 'Am', 13: 'As', 14: 'Aw',
+    21: 'BWk', 22: 'BWh', 26: 'BSk', 27: 'BSh',
+    31: 'Cfa', 32: 'Cfb', 33: 'Cfc', 34: 'Csa', 35: 'Csb', 36: 'Csc', 37: 'Cwa', 38: 'Cwb', 39: 'Cwc',
+    41: 'Dfa', 42: 'Dfb', 43: 'Dfc', 44: 'Dfd', 45: 'Dsa', 46: 'Dsb', 47: 'Dsc', 48: 'Dsd', 49: 'Dwa',
+    50: 'Dwb', 51: 'Dwc', 52: 'Dwd', 61: 'EF', 62: 'ET'
+}
+
+def convert_koppen_code(code):
+    if pd.isna(code):
+        return np.nan
+    try:
+        int_code = int(float(code))
+        return KOPPEN_CODE_TO_ABBR.get(int_code, code)
+    except (ValueError, TypeError):
+        return code
+
 def load_and_preprocess_koppen():
     df = pd.read_csv('csv/biomes.csv')
     df['species_short'] = df['species'].apply(preprocess_species_name)
@@ -231,6 +829,7 @@ def load_and_preprocess_koppen():
     if dedup.empty:
         print("WARNING: No Koppen zone data available.")
         return pd.DataFrame(columns=['species_short', 'koppen_zone'])
+    dedup['koppen_zone'] = dedup['koppen_zone'].apply(convert_koppen_code)
     if dedup['koppen_zone'].isna().all():
         print("WARNING: 'koppen_zone' column contains only NaN values.")
         return pd.DataFrame(columns=['species_short', 'koppen_zone'])
@@ -288,7 +887,7 @@ def prepare_multinomial_data(data_df, biome_df, outcome_col):
     if biome_df is not None and 'biome' not in data.columns:
         data = pd.merge(data, biome_df, on='species_short', how='left')
     cat = data['tipping_point_type'].astype('category')
-    all_types = ['no bifurcation', 'fold bifurcation', 'Hopf bifurcation', 'transcritical bifurcation']
+    all_types = ['no-bifurcation', 'fold bifurcation', 'Hopf bifurcation', 'transcritical bifurcation']
     present_types = [t for t in all_types if t in cat.cat.categories]
     cat = cat.cat.reorder_categories(present_types, ordered=True)
     data['tipping_point_type'] = cat
@@ -539,8 +1138,8 @@ def create_predicted_probability_plot(inv_df, iucn_df, outcome_name, threshold):
     full_bif = pd.read_csv('csv/bifurcation_results.csv')
     full_bif = full_bif[full_bif['transition_year'].notna()].copy()
     full_bif['species_short'] = full_bif['species'].apply(preprocess_species_name)
-    full_bif['tipping_point_type'] = full_bif.apply(lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no bifurcation', axis=1)
-    valid_types = ['fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation', 'no bifurcation']
+    full_bif['tipping_point_type'] = full_bif.apply(lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation', axis=1)
+    valid_types = ['fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation', 'no-bifurcation']
     full_bif = full_bif[full_bif['tipping_point_type'].isin(valid_types)]
     if outcome_name == 'invasive':
         status_df = inv_df[['species_short', 'is_invasive']].copy()
@@ -583,6 +1182,7 @@ def run_analysis(probability_threshold):
     koppen_df = load_and_preprocess_koppen()
     meow_df = load_and_preprocess_meow()
     bif_with_biome = pd.merge(bif_df[['species_short', 'taxonomic_group', 'tipping_point_type']], biome_df, on='species_short', how='left')
+    print("\n----------CONTINGENCY-TABLE----------\n")
     contingency_table_bifurcation(bif_with_biome, 'biome', 'biome')
     if not koppen_df.empty:
         bif_with_koppen = pd.merge(bif_df[['species_short', 'taxonomic_group', 'tipping_point_type']], koppen_df, on='species_short', how='left')
@@ -601,26 +1201,27 @@ def run_analysis(probability_threshold):
         combined_data = pd.merge(combined_data, meow_df, on='species_short', how='left')
     bayesian_results = []
     data_comb, feat_comb = prepare_multinomial_data(combined_data, biome_df, 'category')
-    res_fixed = run_multinomial_model_fixed(data_comb, feat_comb, 'category', model_name='fixed_multinomial')
-    bayesian_results.append(res_fixed)
-    if 'taxonomic_group' in data_comb.columns:
-        res_hier_tax = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='taxonomic_group', model_name='hierarchical_taxonomic_multinomial')
-        bayesian_results.append(res_hier_tax)
-    if 'biome' in data_comb.columns:
-        res_hier_bio = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='biome', model_name='hierarchical_biome_multinomial')
-        bayesian_results.append(res_hier_bio)
-    if 'koppen_zone' in data_comb.columns and data_comb['koppen_zone'].notna().any():
-        res_hier_kop = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='koppen_zone', model_name='hierarchical_koppen_multinomial')
-        bayesian_results.append(res_hier_kop)
-    if 'meow_zone' in data_comb.columns and data_comb['meow_zone'].notna().any():
-        res_hier_meow = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='meow_zone', model_name='hierarchical_meow_multinomial')
-        bayesian_results.append(res_hier_meow)
-    bayesian_df = pd.DataFrame(bayesian_results)
-    if bayesian_df.empty:
-        print("No Bayesian results to plot.")
-    for idx, row in bayesian_df.iterrows():
-        create_multinomial_inference_figure(bayesian_df, row['outcome'], row['model'])
-        create_multinomial_posterior_plot(bayesian_df, row['outcome'], row['model'])
+#    print("\n----------LOGIT----------\n")
+#    res_fixed = run_multinomial_model_fixed(data_comb, feat_comb, 'category', model_name='fixed_multinomial')
+#    bayesian_results.append(res_fixed)
+#    if 'taxonomic_group' in data_comb.columns:
+#        res_hier_tax = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='taxonomic_group', model_name='hierarchical_taxonomic_multinomial')
+#        bayesian_results.append(res_hier_tax)
+#    if 'biome' in data_comb.columns:
+#        res_hier_bio = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='biome', model_name='hierarchical_biome_multinomial')
+#        bayesian_results.append(res_hier_bio)
+#    if 'koppen_zone' in data_comb.columns and data_comb['koppen_zone'].notna().any():
+#        res_hier_kop = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='koppen_zone', model_name='hierarchical_koppen_multinomial')
+#        bayesian_results.append(res_hier_kop)
+#    if 'meow_zone' in data_comb.columns and data_comb['meow_zone'].notna().any():
+#        res_hier_meow = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='meow_zone', model_name='hierarchical_meow_multinomial')
+#        bayesian_results.append(res_hier_meow)
+#    bayesian_df = pd.DataFrame(bayesian_results)
+#    if bayesian_df.empty:
+#        print("No Bayesian results to plot.")
+#    for idx, row in bayesian_df.iterrows():
+#        create_multinomial_inference_figure(bayesian_df, row['outcome'], row['model'])
+#        create_multinomial_posterior_plot(bayesian_df, row['outcome'], row['model'])
 
 def main():
     probability_thresholds = [0.5]

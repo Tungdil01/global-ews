@@ -1,10 +1,4 @@
-import os
-import re
-import time
-import random
-import csv
-import requests
-import warnings
+import os, re, time, random, csv, requests, warnings
 import pandas as pd
 import urllib.parse
 from pathlib import Path

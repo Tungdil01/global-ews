@@ -1,5 +1,5 @@
-import pandas as pd
 import os
+import pandas as pd
 
 def remove_duplicates_pandas(input_file, output_file, subset=None, keep='first'):
     if not os.path.exists(input_file):

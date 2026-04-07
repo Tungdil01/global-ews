@@ -1142,7 +1142,7 @@ class TimeSeries:
                 0: "fold bif.",
                 1: "Hopf bif.",
                 2: "transcritical bif.",
-                3: "no bif.",
+                3: "no-bif.",
             }
             # If plotting predictions from every classifier
             if not ens_avg:

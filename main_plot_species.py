@@ -1,5 +1,4 @@
-import os
-import time
+import os, time
 import ewstools
 import numpy as np
 import pandas as pd
@@ -115,7 +114,7 @@ def load_and_filter_data(species_list, threshold=0.6):
     try: # Load results for target species only
         results_df = pd.read_csv(results_file)
         results_df['tipping_point_type'] = results_df.apply(
-            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no bifurcation',
+            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation',
             axis=1
         )
         results_df = results_df[results_df['species'].isin(species_list)] # Filter for target species

@@ -2,7 +2,6 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
 from mpl_toolkits.basemap import Basemap
 import traceback
 
@@ -19,7 +18,7 @@ plt.rcParams.update({
 def apply_tipping_point_threshold(df, threshold=0.3):
     if 'raw_tipping_point_type' in df.columns and 'best_probability' in df.columns:
         df['tipping_point_type'] = df.apply(
-            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no bifurcation',
+            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation',
             axis=1
         )
     return df

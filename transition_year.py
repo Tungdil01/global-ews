@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from statsmodels.nonparametric.smoothers_lowess import lowess
-tipping_point_colors = {'no bifurcation': '#999999', 'fold bifurcation': '#1f77b4', 'transcritical bifurcation': '#ff7f0e', 'Hopf bifurcation': '#9467bd'}
+
+tipping_point_colors = {'no-bifurcation': '#999999', 'fold bifurcation': '#1f77b4', 'transcritical bifurcation': '#ff7f0e', 'Hopf bifurcation': '#9467bd'}
 
 def set_plot_style():
     plt.rcParams.update({
@@ -73,7 +74,7 @@ def plot_transition_years(bifurcation_csv, raw_data_csv, img_folder):
         print(f"Error: file {bifurcation_csv} not found.")
         return
     df = pd.read_csv(bifurcation_csv)
-    df_filtered = df[df['tipping_point_type'] != 'no bifurcation'].copy()
+    df_filtered = df[df['tipping_point_type'] != 'no-bifurcation'].copy()
     df_filtered['year_int'] = df_filtered['transition_year'].astype(int)
     counts = df_filtered.groupby('year_int').size().reset_index(name='count')
     fig, ax1 = plt.subplots(figsize=(10,6))
@@ -120,7 +121,7 @@ def plot_relative_transition_years(bifurcation_csv, raw_data_csv, img_folder):
         print(f"Error: file {raw_data_csv} not found.")
         return
     df_bif = pd.read_csv(bifurcation_csv)
-    df_bif_filtered = df_bif[df_bif['tipping_point_type'] != 'no bifurcation'].copy()
+    df_bif_filtered = df_bif[df_bif['tipping_point_type'] != 'no-bifurcation'].copy()
     df_bif_filtered['year_int'] = df_bif_filtered['transition_year'].astype(int)
     df_span = get_species_time_spans(raw_data_csv)
     df_bif_filtered['species_clean'] = df_bif_filtered['species'].astype(str).str.strip()
@@ -147,12 +148,14 @@ def plot_relative_transition_years(bifurcation_csv, raw_data_csv, img_folder):
 
 def classify_bifurcation_type(t):
     t = str(t).lower().strip()
-    if 'no bifurcation' in t:
-        return 'no bifurcation'
+    if 'no-bifurcation' in t:
+        return 'no-bifurcation'
     if 'fold' in t:
         return 'fold'
     if 'transcritical' in t:
         return 'transcritical'
+    if 'hopf' in t:
+        return 'Hopf'
     return None
 
 def plot_type_percentages(bifurcation_csv, img_folder):
@@ -166,10 +169,10 @@ def plot_type_percentages(bifurcation_csv, img_folder):
     df['year_int'] = df['transition_year'].astype(int)
     grouped = df.groupby(['year_int', 'type_clean']).size().reset_index(name='count')
     pivot = grouped.pivot(index='year_int', columns='type_clean', values='count').fillna(0)
-    for col in ['fold', 'transcritical', 'no bifurcation']:
+    for col in ['fold', 'transcritical', 'Hopf', 'no-bifurcation']:
         if col not in pivot.columns:
             pivot[col] = 0
-    pivot = pivot[['fold', 'transcritical', 'no bifurcation']]
+    pivot = pivot[['fold', 'transcritical', 'Hopf', 'no-bifurcation']]
     total = pivot.sum(axis=1)
     start_candidates = total[total >= 20]
     if start_candidates.empty:
@@ -190,8 +193,10 @@ def plot_type_percentages(bifurcation_csv, img_folder):
             color = tipping_point_colors['fold bifurcation']
         elif col == 'transcritical':
             color = tipping_point_colors['transcritical bifurcation']
+        elif col == 'Hopf':
+            color = tipping_point_colors['Hopf bifurcation']
         else:
-            color = tipping_point_colors['no bifurcation']
+            color = tipping_point_colors['no-bifurcation']
         plt.plot(percentages.index, percentages[col], marker='o', linewidth=2, color=color, label=col)
     plt.xlabel('Year')
     plt.ylabel('Percentage (%)')
