@@ -969,14 +969,14 @@ class TimeSeries:
             col=1,
         )
         fig.update_yaxes(title=top_label, row=row_count)
-        # Plot smoothing if computed
+        # Plot smoothing if computed - changed colour to red
         if "smoothing" in self.state.columns:
             fig.add_trace(
                 go.Scatter(
                     x=time_values,
                     y=self.state["smoothing"].values,
                     name="smoothing",
-                    line=dict(color="orange", width=5),
+                    line=dict(color="red", width=5),
                 ),
                 row=row_count,
                 col=1,
@@ -1144,6 +1144,8 @@ class TimeSeries:
                 2: "transcritical bif.",
                 3: "no-bif.",
             }
+            # Colour mapping matching main.py: fold=#1f77b4, Hopf=#9467bd, transcritical=#ff7f0e, no-bif=#999999
+            dl_color_map = {0: '#1f77b4', 1: '#9467bd', 2: '#ff7f0e', 3: '#999999'}
             # If plotting predictions from every classifier
             if not ens_avg:
                 # Loop through class labels and classifier names
@@ -1159,7 +1161,7 @@ class TimeSeries:
                                 name=dl_class_map.get(int(class_label), "Unknown Class"),
                                 legendgroup=dl_class_map.get(int(class_label), "Unknown Class"),
                                 showlegend=True if idx2 == 0 else False,
-                                line=dict(color=colours[idx], width=5),
+                                line=dict(color=dl_color_map[int(class_label)], width=5),
                             ),
                             row=row_count,
                             col=1,
@@ -1175,7 +1177,7 @@ class TimeSeries:
                             x=df_plot["time"].values,
                             y=df_plot[class_label].values,
                             name=dl_class_map.get(int(class_label), "Unknown Class"),
-                            line=dict(color=colours[idx], width=5),
+                            line=dict(color=dl_color_map[int(class_label)], width=5),
                         ),
                         row=row_count,
                         col=1,

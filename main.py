@@ -897,26 +897,35 @@ def plot_histogram(data, filename):
     plt.savefig(filename, dpi=300)
     plt.close()
 
+def get_results_for_figure():
+    short_file = 'csv/bifurcation_results_short.csv'
+    if os.path.exists(short_file) and os.path.getsize(short_file) > 0:
+        print("Using bifurcation_results_short.csv for figure generation")
+        df = read_results_with_fixed_columns(short_file)
+    else:
+        print("bifurcation_results_short.csv not found, using bifurcation_results.csv")
+        df = read_results_with_fixed_columns('csv/bifurcation_results.csv')
+    if 'taxonomic_group' in df.columns:
+        df['taxonomic_group'] = df['taxonomic_group'].apply(collapse_taxonomic_group)
+    return df
+
 def create_summary_figure(results_df):
     if 'tipping_point_type' not in results_df.columns or 'taxonomic_group' not in results_df.columns:
         print("Warning: Could not create summary figure - missing required columns")
         return
     plot_df = results_df.copy()
-    # Convert 'error', 'null', and cases with no transition year to 'no-bifurcation' for visualization only
-    mask = (plot_df['tipping_point_type'].isin(['error', 'null'])) | (plot_df['transition_year'].isna())
-    plot_df.loc[mask, 'tipping_point_type'] = 'no-bifurcation'
     tipping_point_order = ['no-bifurcation', 'fold bifurcation', 'transcritical bifurcation', 'Hopf bifurcation']
     tipping_point_colors = {
-        'no-bifurcation': '#999999',  # grey
-        'fold bifurcation': '#1f77b4',  # blue
-        'transcritical bifurcation': '#ff7f0e',  # orange
-        'Hopf bifurcation': '#9467bd'  # purple
+        'no-bifurcation': '#999999',
+        'fold bifurcation': '#1f77b4',
+        'transcritical bifurcation': '#ff7f0e',
+        'Hopf bifurcation': '#9467bd'
     }
     summary = plot_df.groupby(['taxonomic_group', 'tipping_point_type']).size().unstack(fill_value=0)
     existing_columns = [col for col in tipping_point_order if col in summary.columns]
     summary = summary[existing_columns]
     summary = summary.reindex(TAXONOMIC_ORDER, fill_value=0)
-    summary = summary.loc[summary.sum(axis=1) > 0]  # Remove groups with no data
+    summary = summary.loc[summary.sum(axis=1) > 0]
     set_plot_style()
     plt.figure(figsize=(24, 10))
     ax = plt.gca()
@@ -928,9 +937,9 @@ def create_summary_figure(results_df):
     bars = []
     for i, col in enumerate(summary.columns):
         values = summary[col].values
-        percentages = (values / row_totals.replace(0, np.nan)) * 100 # Calculate percentage relative to group total
+        percentages = (values / row_totals.replace(0, np.nan)) * 100
         percentages = percentages.fillna(0).values
-        color = tipping_point_colors.get(col, '#1f77b4')  # default to blue if not found
+        color = tipping_point_colors.get(col, '#1f77b4')
         bar = ax.bar(summary.index, percentages, bottom=bottom, color=color, alpha=0.65, label=col)
         bars.append(bar)
         bottom += percentages
@@ -948,7 +957,7 @@ def create_summary_figure(results_df):
     plt.ylabel('Percentage within Group (%)')
     plt.xlim(-0.5, len(summary) - 0.5)
     plt.xticks(rotation=45, ha='right')
-    plt.legend(title='Tipping Point Type', loc='upper left', bbox_to_anchor=(1, 1))
+    plt.legend(title='Bifurcation Type', loc='upper left', bbox_to_anchor=(1, 1))
     plt.grid(False)
     plt.tight_layout()
     os.makedirs('img', exist_ok=True)
@@ -1571,6 +1580,27 @@ def core_worker(core_id, full_data, classifier_paths_500, classifier_paths_1500,
             print(f"Core {core_id} saved batch of {len(batch_results)} species")
     return processed_count
 
+def refresh_taxonomic_cache_from_results(results_file='csv/bifurcation_results.csv'):
+    if not os.path.exists(results_file) or os.path.getsize(results_file) == 0:
+        print("No existing results file, skipping taxonomic cache refresh.")
+        return
+    try:
+        results_df = read_results_with_fixed_columns(results_file)
+        if 'species' not in results_df.columns:
+            print("Results file missing 'species' column, cannot refresh cache.")
+            return
+        unique_species = results_df['species'].unique()
+        print(f"Refreshing taxonomic cache for {len(unique_species)} species from results...")
+        taxon_mapping = {}
+        if os.path.exists('csv/taxon_mapping.csv') and os.path.getsize('csv/taxon_mapping.csv') > 0:
+            taxon_df = pd.read_csv('csv/taxon_mapping.csv', encoding='utf-8')
+            taxon_mapping = dict(zip(taxon_df['species'].str.lower(), taxon_df['taxon']))
+        for species in tqdm(unique_species, desc="Updating cache"):
+            get_cached_taxonomic_group(species, taxon_mapping=taxon_mapping, force_recompute=False)
+        print("Taxonomic cache refresh completed.")
+    except Exception as e:
+        print(f"Error refreshing taxonomic cache: {e}")
+
 def run_analysis_pipeline(min_records=100, force_reclassification=False, species_to_plot=None, n_jobs=-1, batch_size=1, specific_species_list=None):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, 'data')
@@ -1618,7 +1648,7 @@ def run_analysis_pipeline(min_records=100, force_reclassification=False, species
     if len(species_to_process_final) == 0:
         print("All target species already processed.")
         try:
-            results_df = read_results_with_fixed_columns(results_file)
+            results_df = get_results_for_figure()
             create_summary_figure(results_df)
         except Exception as e:
             print(f"Error creating summary figure: {e}")
@@ -1652,34 +1682,13 @@ def run_analysis_pipeline(min_records=100, force_reclassification=False, species
     total_processed = sum(results)
     print(f"Parallel processing complete. Total species processed: {total_processed}")
     try:
-        results_df = read_results_with_fixed_columns(results_file)
+        results_df = get_results_for_figure()
         create_summary_figure(results_df)
         pending, processing, completed = get_remaining_species_count()
         print(f"Final status - Pending: {pending}, Processing: {processing}, Completed: {completed}")
     except Exception as e:
         print(f"Error in final processing: {e}")
     return results_df
-
-def refresh_taxonomic_cache_from_results(results_file='csv/bifurcation_results.csv'):
-    if not os.path.exists(results_file) or os.path.getsize(results_file) == 0:
-        print("No existing results file, skipping taxonomic cache refresh.")
-        return
-    try:
-        results_df = read_results_with_fixed_columns(results_file)
-        if 'species' not in results_df.columns:
-            print("Results file missing 'species' column, cannot refresh cache.")
-            return
-        unique_species = results_df['species'].unique()
-        print(f"Refreshing taxonomic cache for {len(unique_species)} species from results...")
-        taxon_mapping = {}
-        if os.path.exists('csv/taxon_mapping.csv') and os.path.getsize('csv/taxon_mapping.csv') > 0:
-            taxon_df = pd.read_csv('csv/taxon_mapping.csv', encoding='utf-8')
-            taxon_mapping = dict(zip(taxon_df['species'].str.lower(), taxon_df['taxon']))
-        for species in tqdm(unique_species, desc="Updating cache"):
-            get_cached_taxonomic_group(species, taxon_mapping=taxon_mapping, force_recompute=False)
-        print("Taxonomic cache refresh completed.")
-    except Exception as e:
-        print(f"Error refreshing taxonomic cache: {e}")
 
 def main():
     setup_warning_suppression()
@@ -1709,8 +1718,9 @@ def main():
             print(f"Missing species: {len(missing_species)}")
             if len(missing_species) == 0:
                 print(f"All species with >= {min_records} records already processed. Generating figures...")
-                create_summary_figure(results_df)
-                overall_counts = results_df['tipping_point_type'].value_counts()
+                fig_results_df = get_results_for_figure()
+                create_summary_figure(fig_results_df)
+                overall_counts = fig_results_df['tipping_point_type'].value_counts()
                 plot_histogram(overall_counts, 'img/overall_distribution.pdf')
                 print("Figures generated from existing results!")
                 return results_df
@@ -1738,7 +1748,7 @@ def main():
     )
     update_taxonomic_groups_from_mapping()
     try:
-        results_df = read_results_with_fixed_columns(results_file)
+        results_df = get_results_for_figure()
         create_summary_figure(results_df)
         overall_counts = results_df['tipping_point_type'].value_counts()
         plot_histogram(overall_counts, 'img/overall_distribution.pdf')

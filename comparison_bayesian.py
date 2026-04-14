@@ -309,24 +309,53 @@ def bayesian_contingency_analysis(table, group_name):
     if len(plot_items) == 0:
         print(f"No odds ratios to plot for {group_name}")
         return
-    labels = [f"{item[0]} - {item[1]}" for item in plot_items]
-    means = [item[2] for item in plot_items]
-    lowers = [item[3] for item in plot_items]
-    uppers = [item[4] for item in plot_items]
-    y_pos = np.arange(len(labels)-1, -1, -1)
-    fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
-    for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
-        ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
-        ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
-    ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(labels)
-    ax.set_xlabel('Odds Ratio')
-    ax.set_xlim(0, 4)
-    ax.set_ylim(-0.5, len(labels)-0.5)
-    plt.tight_layout()
-    plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
-    plt.close()
+    n_items = len(plot_items)
+    # Split into two columns only for biome, meow, taxonomic when more than 8 items; keep koppen as single column
+    if group_name in ['biome', 'meow', 'taxonomic'] and n_items > 8:
+        n_left = (n_items + 1) // 2
+        left_items = plot_items[:n_left]
+        right_items = plot_items[n_left:]
+        fig, axes = plt.subplots(1, 2, figsize=(16, 0.4 * n_left + 2))
+        for ax, items in zip(axes, [left_items, right_items]):
+            if len(items) == 0:
+                ax.set_visible(False)
+                continue
+            labels = [f"{item[0]} - {item[1]}" for item in items]
+            means = [item[2] for item in items]
+            lowers = [item[3] for item in items]
+            uppers = [item[4] for item in items]
+            y_pos = np.arange(len(labels)-1, -1, -1)
+            for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
+                ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+                ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
+            ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+            ax.set_yticks(y_pos)
+            ax.set_yticklabels(labels)
+            ax.set_xlabel('Odds Ratio')
+            ax.set_xlim(0, 4)
+            ax.set_ylim(-0.5, len(labels)-0.5)
+        plt.tight_layout()
+        plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
+        plt.close()
+    else:
+        labels = [f"{item[0]} - {item[1]}" for item in plot_items]
+        means = [item[2] for item in plot_items]
+        lowers = [item[3] for item in plot_items]
+        uppers = [item[4] for item in plot_items]
+        y_pos = np.arange(len(labels)-1, -1, -1)
+        fig, ax = plt.subplots(1, 1, figsize=(8, 0.4 * len(labels) + 2))
+        for i, (mean, low, high) in enumerate(zip(means, lowers, uppers)):
+            ax.plot(mean, y_pos[i], 'o', color='#1f77b4', markersize=8, markeredgecolor='black', markeredgewidth=0.5)
+            ax.hlines(y_pos[i], low, high, color='black', linewidth=1.5)
+        ax.axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(labels)
+        ax.set_xlabel('Odds Ratio')
+        ax.set_xlim(0, 4)
+        ax.set_ylim(-0.5, len(labels)-0.5)
+        plt.tight_layout()
+        plt.savefig(f'img/contingency_forest_{group_name}.pdf', bbox_inches='tight', dpi=300)
+        plt.close()
 
 ## aggregation
 #def bayesian_contingency_analysis(table, group_name):
@@ -1047,7 +1076,7 @@ def create_multinomial_inference_figure(bayesian_results, outcome_name, model_na
                 axes[0].axvline(1.0, color='black', linestyle='--', alpha=0.5, linewidth=1)
                 axes[0].set_yticks(y_pos)
                 axes[0].set_yticklabels(coef_names)
-                axes[0].set_xlabel('Odds Ratio (relative to neutral)')
+                axes[0].set_xlabel('Odds Ratio')
                 axes[0].legend(loc='lower right')
                 max_val = max([max([d[2] for d in effect_data[cat]]) for cat in cats]) if cats else 2.0
                 axes[0].set_xlim(0, max(max_val * 1.1, 2.0))
@@ -1201,27 +1230,27 @@ def run_analysis(probability_threshold):
         combined_data = pd.merge(combined_data, meow_df, on='species_short', how='left')
     bayesian_results = []
     data_comb, feat_comb = prepare_multinomial_data(combined_data, biome_df, 'category')
-#    print("\n----------LOGIT----------\n")
-#    res_fixed = run_multinomial_model_fixed(data_comb, feat_comb, 'category', model_name='fixed_multinomial')
-#    bayesian_results.append(res_fixed)
-#    if 'taxonomic_group' in data_comb.columns:
-#        res_hier_tax = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='taxonomic_group', model_name='hierarchical_taxonomic_multinomial')
-#        bayesian_results.append(res_hier_tax)
-#    if 'biome' in data_comb.columns:
-#        res_hier_bio = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='biome', model_name='hierarchical_biome_multinomial')
-#        bayesian_results.append(res_hier_bio)
-#    if 'koppen_zone' in data_comb.columns and data_comb['koppen_zone'].notna().any():
-#        res_hier_kop = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='koppen_zone', model_name='hierarchical_koppen_multinomial')
-#        bayesian_results.append(res_hier_kop)
-#    if 'meow_zone' in data_comb.columns and data_comb['meow_zone'].notna().any():
-#        res_hier_meow = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='meow_zone', model_name='hierarchical_meow_multinomial')
-#        bayesian_results.append(res_hier_meow)
-#    bayesian_df = pd.DataFrame(bayesian_results)
-#    if bayesian_df.empty:
-#        print("No Bayesian results to plot.")
-#    for idx, row in bayesian_df.iterrows():
-#        create_multinomial_inference_figure(bayesian_df, row['outcome'], row['model'])
-#        create_multinomial_posterior_plot(bayesian_df, row['outcome'], row['model'])
+    print("\n----------LOGIT----------\n")
+    res_fixed = run_multinomial_model_fixed(data_comb, feat_comb, 'category', model_name='fixed_multinomial')
+    bayesian_results.append(res_fixed)
+    if 'taxonomic_group' in data_comb.columns:
+        res_hier_tax = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='taxonomic_group', model_name='hierarchical_taxonomic_multinomial')
+        bayesian_results.append(res_hier_tax)
+    if 'biome' in data_comb.columns:
+        res_hier_bio = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='biome', model_name='hierarchical_biome_multinomial')
+        bayesian_results.append(res_hier_bio)
+    if 'koppen_zone' in data_comb.columns and data_comb['koppen_zone'].notna().any():
+        res_hier_kop = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='koppen_zone', model_name='hierarchical_koppen_multinomial')
+        bayesian_results.append(res_hier_kop)
+    if 'meow_zone' in data_comb.columns and data_comb['meow_zone'].notna().any():
+        res_hier_meow = run_multinomial_model_hierarchical(data_comb, feat_comb, 'category', group_col='meow_zone', model_name='hierarchical_meow_multinomial')
+        bayesian_results.append(res_hier_meow)
+    bayesian_df = pd.DataFrame(bayesian_results)
+    if bayesian_df.empty:
+        print("No Bayesian results to plot.")
+    for idx, row in bayesian_df.iterrows():
+        create_multinomial_inference_figure(bayesian_df, row['outcome'], row['model'])
+        create_multinomial_posterior_plot(bayesian_df, row['outcome'], row['model'])
 
 def main():
     probability_thresholds = [0.5]
