@@ -1141,7 +1141,7 @@ class TimeSeries:
             dl_class_map = {
                 0: "fold bif.",
                 1: "Hopf bif.",
-                2: "transcritical bif.",
+                2: "transc. bif.",
                 3: "no-bif.",
             }
             # Colour mapping matching main.py: fold=#1f77b4, Hopf=#9467bd, transcritical=#ff7f0e, no-bif=#999999

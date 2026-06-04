@@ -81,7 +81,7 @@ def plot_transition_years(bifurcation_csv, raw_data_csv, img_folder):
     ax1.bar(counts['year_int'], counts['count'], width=0.8, label='Species count per year', color='lightcoral', alpha=0.7)
     ax1.set_xlabel('Changepoint Year')
     ax1.set_ylabel('Number of Species', color='red')
-    spans = np.arange(0.1, 0.6, 0.05)
+    spans = np.arange(0.2, 0.61, 0.01)
     best_span, best_fit = select_best_span(counts['year_int'].values, counts['count'].values, spans)
     ax1.plot(counts['year_int'], best_fit, color='red', linewidth=3, label=f'LOESS trend (span={best_span:.2g})')
     if os.path.exists(raw_data_csv):
@@ -158,61 +158,244 @@ def classify_bifurcation_type(t):
         return 'Hopf'
     return None
 
-def plot_type_percentages(bifurcation_csv, img_folder):
+def abbreviate_bifurcation_type(name):
+    if name == 'fold bifurcation':
+        return 'fold bif.'
+    elif name == 'transcritical bifurcation':
+        return 'transc. bif.'
+    elif name == 'Hopf bifurcation':
+        return 'Hopf bif.'
+    elif name == 'no-bifurcation':
+        return 'no-bif.'
+    else:
+        return name
+
+def plot_type_percentages(bifurcation_csv, img_folder, raw_data_csv=None):
     set_plot_style()
     if not os.path.exists(bifurcation_csv):
         print(f"Error: file {bifurcation_csv} not found.")
         return
-    df = pd.read_csv(bifurcation_csv)
-    df['type_clean'] = df['tipping_point_type'].apply(classify_bifurcation_type)
-    df = df.dropna(subset=['type_clean', 'transition_year']).copy()
-    df['year_int'] = df['transition_year'].astype(int)
-    grouped = df.groupby(['year_int', 'type_clean']).size().reset_index(name='count')
-    pivot = grouped.pivot(index='year_int', columns='type_clean', values='count').fillna(0)
-    for col in ['fold', 'transcritical', 'Hopf', 'no-bifurcation']:
-        if col not in pivot.columns:
-            pivot[col] = 0
-    pivot = pivot[['fold', 'transcritical', 'Hopf', 'no-bifurcation']]
-    total = pivot.sum(axis=1)
-    start_candidates = total[total >= 20]
-    if start_candidates.empty:
-        print("Warning: No year with at least 20 species; plot not created.")
+    if not raw_data_csv or not os.path.exists(raw_data_csv):
+        print("Error: raw data file required for active species counts.")
         return
-    start_year = start_candidates.index.min()
-    pivot = pivot.loc[start_year:]
-    total = total.loc[start_year:]
-    years_full = np.arange(start_year, pivot.index.max() + 1)
-    pivot = pivot.reindex(years_full, fill_value=0)
-    total = pivot.sum(axis=1)
-    percentages = pd.DataFrame(0, index=pivot.index, columns=pivot.columns)
-    mask = total > 0
-    percentages.loc[mask] = pivot.loc[mask].div(total[mask], axis=0) * 100
-    plt.figure(figsize=(10,6))
-    for col in percentages.columns:
-        if col == 'fold':
-            color = tipping_point_colors['fold bifurcation']
-        elif col == 'transcritical':
-            color = tipping_point_colors['transcritical bifurcation']
-        elif col == 'Hopf':
-            color = tipping_point_colors['Hopf bifurcation']
+    df_bif = pd.read_csv(bifurcation_csv)
+    df_bif['type_clean'] = df_bif['tipping_point_type'].apply(classify_bifurcation_type)
+    df_bif = df_bif.dropna(subset=['type_clean']).copy()
+    spans_df = get_species_time_spans(raw_data_csv)
+    spans_df['species_clean'] = spans_df['VALID_NAME'].astype(str).str.strip()
+    bif_info = {}
+    for _, row in df_bif.iterrows():
+        sp = str(row['species']).strip()
+        bif_type = row['type_clean']
+        if bif_type == 'no-bifurcation':
+            continue
+        bif_info[sp] = {'trans_year': int(row['transition_year']), 'bif_type': bif_type}
+    all_years = np.arange(spans_df['min_year'].min(), spans_df['max_year'].max() + 1)
+    state_counts = {year: {'no-bif': 0, 'fold': 0, 'transcritical': 0, 'Hopf': 0} for year in all_years}
+    incidence = {year: 0 for year in all_years}
+    for _, row in spans_df.iterrows():
+        sp = row['species_clean']
+        min_y = int(row['min_year'])
+        max_y = int(row['max_year'])
+        info = bif_info.get(sp)
+        trans_year = info['trans_year'] if info else None
+        for y in range(min_y, max_y + 1):
+            if info is None or y < trans_year:
+                state_counts[y]['no-bif'] += 1
+            else:
+                if info['bif_type'] == 'fold':
+                    state_counts[y]['fold'] += 1
+                elif info['bif_type'] == 'transcritical':
+                    state_counts[y]['transcritical'] += 1
+                elif info['bif_type'] == 'Hopf':
+                    state_counts[y]['Hopf'] += 1
+                if y == trans_year:
+                    incidence[y] += 1
+    df_counts = pd.DataFrame.from_dict(state_counts, orient='index').sort_index()
+    active = df_counts.sum(axis=1)
+    df_percent = df_counts.div(active, axis=0) * 100
+    valid_years = active >= 20
+    df_percent = df_percent[valid_years]
+    active_valid = active[valid_years]
+    if df_percent.empty:
+        print("Warning: No year with at least 20 active species; plot not created.")
+        return
+    inc_series = pd.Series(incidence, index=all_years)
+    inc_series = inc_series[valid_years]
+    no_bif_counts = df_counts['no-bif'][valid_years]
+    at_risk = no_bif_counts + inc_series
+    rate = (inc_series / at_risk) * 1000
+    fig, ax1 = plt.subplots(figsize=(10,6))
+    spans = np.arange(0.2, 0.61, 0.01)
+    for state in ['no-bif', 'fold', 'transcritical', 'Hopf']:
+        if state not in df_percent.columns:
+            continue
+        y = df_percent[state].values
+        full_name = {'no-bif':'no-bifurcation','fold':'fold bifurcation','transcritical':'transcritical bifurcation','Hopf':'Hopf bifurcation'}[state]
+        label_abbr = abbreviate_bifurcation_type(full_name)
+        if len(y) < 5:
+            ax1.plot(df_percent.index, y, linewidth=2, color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), label=label_abbr)
+            continue
+        best_span, best_fit = select_best_span(df_percent.index.values, y, spans)
+        if best_fit is not None:
+            ax1.plot(df_percent.index, best_fit, linewidth=2, color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), label=label_abbr)
+        ax1.plot(df_percent.index, y, marker='o', linestyle='none', color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), alpha=0.3)
+    ax1.set_xlabel('Year')
+    ax1.set_ylabel('Prevalence of bifurcation types')
+    ax2 = ax1.twinx()
+    ax2.plot(rate.index, rate, marker='o', linewidth=2, color='darkgreen', alpha=0.7, label='')
+    pre_span_incidence = 0.37
+    if len(rate) >= 5:
+        if pre_span_incidence is not None:
+            best_fit = lowess(rate.values, rate.index, frac=pre_span_incidence, return_sorted=False)
+            ax2.plot(rate.index, best_fit, linestyle='--', linewidth=2, color='darkgreen', label=f'LOESS (span={pre_span_incidence:.2g})')
         else:
-            color = tipping_point_colors['no-bifurcation']
-        plt.plot(percentages.index, percentages[col], marker='o', linewidth=2, color=color, label=col)
-    plt.xlabel('Year')
-    plt.ylabel('Percentage (%)')
-    plt.legend()
+            best_span, best_fit = select_best_span(rate.index.values, rate.values, spans)
+            if best_fit is not None:
+                ax2.plot(rate.index, best_fit, linestyle='--', linewidth=2, color='darkgreen', label=f'LOESS (span={best_span:.2g})')
+    ax2.set_ylabel('Incidence Rate of bifurcations', color='darkgreen')
+    handles1, labels1 = ax1.get_legend_handles_labels()
+    handles2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(handles1 + handles2, labels1 + labels2, loc='best')
     plt.tight_layout()
     os.makedirs(img_folder, exist_ok=True)
-    plt.savefig(os.path.join(img_folder, 'type_percentages_plot.pdf'), dpi=300)
-    plt.close()
+    plt.savefig(os.path.join(img_folder, 'type_prevalence_incidence.pdf'), dpi=300)
+    plt.close(fig)
+
+def plot_taxonomic_type_percentages(bifurcation_csv, img_folder, raw_data_csv=None):
+    set_plot_style()
+    if not os.path.exists(bifurcation_csv):
+        print(f"Error: file {bifurcation_csv} not found.")
+        return
+    if not raw_data_csv or not os.path.exists(raw_data_csv):
+        print("Error: raw data file required for active species counts.")
+        return
+    df_bif = pd.read_csv(bifurcation_csv)
+    df_bif['type_clean'] = df_bif['tipping_point_type'].apply(classify_bifurcation_type)
+    df_bif = df_bif.dropna(subset=['type_clean', 'taxonomic_group']).copy()
+    spans_df = get_species_time_spans(raw_data_csv)
+    spans_df['species_clean'] = spans_df['VALID_NAME'].astype(str).str.strip()
+    bif_info = {}
+    for _, row in df_bif.iterrows():
+        sp = str(row['species']).strip()
+        bif_type = row['type_clean']
+        if bif_type == 'no-bifurcation':
+            continue
+        tax = row['taxonomic_group']
+        bif_info[sp] = {'trans_year': int(row['transition_year']), 'bif_type': bif_type, 'tax_group': tax}
+    species_taxon = {sp: info['tax_group'] for sp, info in bif_info.items()}
+    spans_df['taxonomic_group'] = spans_df['species_clean'].map(species_taxon)
+    spans_df = spans_df.dropna(subset=['taxonomic_group'])
+    group_counts = spans_df.groupby('taxonomic_group')['species_clean'].nunique().sort_values(ascending=False)
+    top_groups = [g for g in group_counts.index if g != 'Other'][:8]
+    valid_groups = []
+    group_percents = []
+    group_incidence = []
+    pre_spans_tax = {
+        'Actinopterygii': 0.24, 'Hexapoda': 0.31, 'Tracheophyta': 0.21, 'Aves': 0.22,
+        'Malacostraca': 0.22, 'Annelida': 0.52, 'Ochrophyta': 0.45, 'Myzozoa': 0.55,
+        'Echinodermata': 0.54, 'Mammalia': 0.25, 'Chelicerata': 0.2, 'Lissamphibia': 0.3,
+        'Tunicata': 0.54, 'Bryozoa': 0.5, 'Bacteria': 0.23, 'Copepoda': 0.24, 'Mollusca': 0.6, 'Cnidaria': 0.6, 'Maxillopoda': 0.6
+    }
+    expand_groups = None
+    for group in top_groups:
+        group_spans = spans_df[spans_df['taxonomic_group'] == group].copy()
+        if group_spans.empty:
+            continue
+        min_year = group_spans['min_year'].min()
+        max_year = group_spans['max_year'].max()
+        years = np.arange(min_year, max_year + 1)
+        state_counts = {y: {'no-bif': 0, 'fold': 0, 'transcritical': 0, 'Hopf': 0} for y in years}
+        incidence = {y: 0 for y in years}
+        for _, row in group_spans.iterrows():
+            sp = row['species_clean']
+            min_y = int(row['min_year'])
+            max_y = int(row['max_year'])
+            info = bif_info.get(sp)
+            trans_year = info['trans_year'] if info else None
+            for y in range(min_y, max_y + 1):
+                if info is None or y < trans_year:
+                    state_counts[y]['no-bif'] += 1
+                else:
+                    if info['bif_type'] == 'fold':
+                        state_counts[y]['fold'] += 1
+                    elif info['bif_type'] == 'transcritical':
+                        state_counts[y]['transcritical'] += 1
+                    elif info['bif_type'] == 'Hopf':
+                        state_counts[y]['Hopf'] += 1
+                    if y == trans_year:
+                        incidence[y] += 1
+        df_counts = pd.DataFrame.from_dict(state_counts, orient='index').sort_index()
+        active = df_counts.sum(axis=1)
+        df_percent = df_counts.div(active, axis=0) * 100
+        valid = active >= 10
+        df_percent = df_percent[valid]
+        active_valid = active[valid]
+        inc_series = pd.Series(incidence).reindex(df_percent.index, fill_value=0)
+        if df_percent.empty or len(df_percent) < 5:
+            continue
+        valid_groups.append(group)
+        group_percents.append(df_percent)
+        group_incidence.append((inc_series, df_counts['no-bif'][valid]))
+    if not valid_groups:
+        print("Warning: No taxonomic groups with sufficient data found.")
+        return
+    n_rows, n_cols = 4, 2
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(10 * n_cols, 6 * n_rows), sharex=True)
+    axes_flat = axes.flatten()
+    spans_loess = np.arange(0.2, 0.61, 0.01)
+    for idx, (group, df_percent) in enumerate(zip(valid_groups, group_percents)):
+        ax1 = axes_flat[idx]
+        for state in ['no-bif', 'fold', 'transcritical', 'Hopf']:
+            if state not in df_percent.columns:
+                continue
+            y = df_percent[state].values
+            full_name = {'no-bif':'no-bifurcation','fold':'fold bifurcation','transcritical':'transcritical bifurcation','Hopf':'Hopf bifurcation'}[state]
+            label_abbr = abbreviate_bifurcation_type(full_name)
+            if len(y) < 5:
+                ax1.plot(df_percent.index, y, linewidth=2, color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), label=label_abbr)
+                continue
+            best_span, best_fit = select_best_span(df_percent.index.values, y, spans_loess)
+            if best_fit is not None:
+                ax1.plot(df_percent.index, best_fit, linewidth=2, color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), label=label_abbr)
+            ax1.plot(df_percent.index, y, marker='o', linestyle='none', color=tipping_point_colors.get(state + ' bifurcation', tipping_point_colors['no-bifurcation']), alpha=0.3)
+        ax1.set_ylabel(f'Prevalence for {group}')
+        inc_series, no_bif_counts = group_incidence[idx]
+        at_risk = no_bif_counts + inc_series
+        rate = (inc_series / at_risk) * 1000
+        ax2 = ax1.twinx()
+        ax2.plot(rate.index, rate, marker='o', linewidth=2, color='darkgreen', alpha=0.7, label='')
+        if len(rate) >= 8:
+            if group in pre_spans_tax:
+                span = pre_spans_tax[group]
+                best_fit = lowess(rate.values, rate.index, frac=span, return_sorted=False)
+                ax2.plot(rate.index, best_fit, linestyle='--', linewidth=2, color='darkgreen', label=f'LOESS (span={span:.2g})')
+            elif group in expand_groups:
+                span = 0.6
+                best_fit = lowess(rate.values, rate.index, frac=span, return_sorted=False)
+                ax2.plot(rate.index, best_fit, linestyle='--', linewidth=2, color='darkgreen', label=f'LOESS (span={span:.2g})')
+            else:
+                best_span, best_fit = select_best_span(rate.index.values, rate.values, spans_loess)
+                if best_fit is not None:
+                    ax2.plot(rate.index, best_fit, linestyle='--', linewidth=2, color='darkgreen', label=f'LOESS (span={best_span:.2g})')
+        ax2.set_ylabel('Incidence Rate', color='darkgreen')
+        handles1, labels1 = ax1.get_legend_handles_labels()
+        handles2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(handles1 + handles2, labels1 + labels2, loc='best')
+    for idx in range(len(valid_groups), len(axes_flat)):
+        axes_flat[idx].axis('off')
+    axes_flat[-1].set_xlabel('Year')
+    plt.tight_layout()
+    plt.savefig(os.path.join(img_folder, 'taxonomic_type_prevalence_incidence.pdf'), dpi=300)
+    plt.close(fig)
 
 def main():
     bifurcation_csv = 'csv/bifurcation_results_short.csv'
     raw_data_csv = 'data/biotime_v2_full_2025/biotime_v2_rawdata_2025.csv'
     img_folder = 'img'
     plot_transition_years(bifurcation_csv, raw_data_csv, img_folder)
-    plot_relative_transition_years(bifurcation_csv, raw_data_csv, img_folder)
-    plot_type_percentages(bifurcation_csv, img_folder)
+    plot_type_percentages(bifurcation_csv, img_folder, raw_data_csv)
+    plot_taxonomic_type_percentages(bifurcation_csv, img_folder, raw_data_csv)
 
 if __name__ == "__main__":
     main()

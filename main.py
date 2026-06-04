@@ -858,6 +858,18 @@ def set_plot_style():
         'axes.labelsize': 20, 'xtick.labelsize': 20, 'ytick.labelsize': 20, 'legend.fontsize': 18, 'axes.titlesize': 20, 'font.size': 20, 'lines.linewidth': 1.5, 'figure.facecolor': 'white', 'axes.facecolor': 'white', 'axes.edgecolor': 'black', 'axes.linewidth': 1.5
     })
 
+def abbreviate_bifurcation_type(name):
+    if name == 'fold bifurcation':
+        return 'fold bif.'
+    elif name == 'transcritical bifurcation':
+        return 'transc. bif.'
+    elif name == 'Hopf bifurcation':
+        return 'Hopf bif.'
+    elif name == 'no-bifurcation':
+        return 'no-bif.'
+    else:
+        return name
+
 def plot_histogram(data, filename):
     set_plot_style()
     plt.figure(figsize=(10, 8))
@@ -865,27 +877,27 @@ def plot_histogram(data, filename):
     for spine in ax.spines.values():
         spine.set_edgecolor('black')
         spine.set_linewidth(1.5)
-    total = data.sum() # Calculate percentages
+    total = data.sum()
     percentages = (data / total) * 100
     sorted_models = sorted(data.index)
     cmap = plt.get_cmap('Set1')
     color_map = {model: cmap(i % 10) for i, model in enumerate(sorted_models)}
     colors = [color_map[model] for model in data.index]
     bars = ax.bar(data.index, percentages, color=colors, alpha=0.65)
-    for bar, count in zip(bars, data.values): # Add absolute counts inside bars
+    for bar, count in zip(bars, data.values):
         height = bar.get_height()
-        if height > 0:  # Only label bars with visible height
+        if height > 0:
             x_pos = bar.get_x() + bar.get_width() / 2
             y_pos = bar.get_y() + height / 2
             ax.text(x_pos, y_pos, f'{int(count)}', ha='center', va='center', color='black', fontsize=14, fontweight='bold')
     plt.xlabel(None)
     plt.ylabel('Percentage of Total (%)')
-    x_labels = [str(label) for label in data.index] # Split x-labels into two lines to prevent overlapping
+    x_labels = [abbreviate_bifurcation_type(str(label)) for label in data.index]
     split_labels = []
     for label in x_labels:
         words = label.split()
         if len(words) > 1:
-            mid = len(words) // 2 # Split into approximately equal halves
+            mid = len(words) // 2
             first_line = ' '.join(words[:mid])
             second_line = ' '.join(words[mid:])
             split_labels.append(first_line + '\n' + second_line)
@@ -926,6 +938,23 @@ def create_summary_figure(results_df):
     summary = summary[existing_columns]
     summary = summary.reindex(TAXONOMIC_ORDER, fill_value=0)
     summary = summary.loc[summary.sum(axis=1) > 0]
+    print("\nTaxonomic group summary (counts of bifurcation types):")
+    print("-" * 80)
+    header = "Taxonomic Group".ljust(25) + "".join([t.ljust(22) for t in ['no-bif', 'fold', 'transc', 'Hopf']]) + "Total"
+    print(header)
+    print("-" * 80)
+    for group in summary.index:
+        row = summary.loc[group]
+        total = row.sum()
+        counts_str = (
+            str(row.get('no-bifurcation', 0)).rjust(6) + " " +
+            str(row.get('fold bifurcation', 0)).rjust(6) + " " +
+            str(row.get('transcritical bifurcation', 0)).rjust(6) + " " +
+            str(row.get('Hopf bifurcation', 0)).rjust(6)
+        )
+        print(group.ljust(25) + counts_str + "   " + str(total))
+    print("-" * 80)
+    print(f"Total species across all groups: {summary.sum().sum()}\n")
     set_plot_style()
     plt.figure(figsize=(24, 10))
     ax = plt.gca()
@@ -940,7 +969,7 @@ def create_summary_figure(results_df):
         percentages = (values / row_totals.replace(0, np.nan)) * 100
         percentages = percentages.fillna(0).values
         color = tipping_point_colors.get(col, '#1f77b4')
-        bar = ax.bar(summary.index, percentages, bottom=bottom, color=color, alpha=0.65, label=col)
+        bar = ax.bar(summary.index, percentages, bottom=bottom, color=color, alpha=0.65, label=abbreviate_bifurcation_type(col))
         bars.append(bar)
         bottom += percentages
     for i, bar_collection in enumerate(bars):
@@ -1692,9 +1721,9 @@ def run_analysis_pipeline(min_records=100, force_reclassification=False, species
 
 def main():
     setup_warning_suppression()
-    backup_existing_results()
-    update_taxonomic_cache_from_other()
-    refresh_taxonomic_cache_from_results()
+    # backup_existing_results()
+    # update_taxonomic_cache_from_other()
+    # refresh_taxonomic_cache_from_results()
     print("Starting EWS analysis pipeline...")
     min_records = 20
     force_reclassification = False
@@ -1716,46 +1745,46 @@ def main():
             print(f"Total species with >= {min_records} records: {len(combined_species_set)}")
             print(f"Already processed species: {len(processed_combined_species)}")
             print(f"Missing species: {len(missing_species)}")
-            if len(missing_species) == 0:
-                print(f"All species with >= {min_records} records already processed. Generating figures...")
-                fig_results_df = get_results_for_figure()
-                create_summary_figure(fig_results_df)
-                overall_counts = fig_results_df['tipping_point_type'].value_counts()
-                plot_histogram(overall_counts, 'img/overall_distribution.pdf')
-                print("Figures generated from existing results!")
-                return results_df
-            else:
-                print(f"Found {len(missing_species)} species missing from results. Running analysis for missing species only...")
-                if force_reclassification:
-                    species_list_to_process = None
-                    print("Force reclassification enabled: will reprocess ALL species.")
-                else:
-                    species_list_to_process = list(missing_species)
+            # if len(missing_species) == 0:
+            print(f"All species with >= {min_records} records already processed. Generating figures...")
+            fig_results_df = get_results_for_figure()
+            create_summary_figure(fig_results_df)
+            overall_counts = fig_results_df['tipping_point_type'].value_counts()
+            plot_histogram(overall_counts, 'img/overall_distribution.pdf')
+            print("Figures generated from existing results!")
+            return results_df
+            # else:
+            #     print(f"Found {len(missing_species)} species missing from results. Running analysis for missing species only...")
+            #     if force_reclassification:
+            #         species_list_to_process = None
+            #         print("Force reclassification enabled: will reprocess ALL species.")
+            #     else:
+            #         species_list_to_process = list(missing_species)
         else:
             print("Combined species file not found. Running full analysis...")
             species_list_to_process = None
     else:
         print("No existing results found. Running full analysis...")
         species_list_to_process = None
-    plot_dl_figs = True
-    specific_species_to_plot = []
-    if plot_dl_figs:
-        species_to_plot = specific_species_to_plot
-    else:
-        species_to_plot = None
-    results = run_analysis_pipeline(
-        min_records=min_records, force_reclassification=force_reclassification, species_to_plot=species_to_plot, n_jobs=-1, batch_size=1, specific_species_list=species_list_to_process
-    )
-    update_taxonomic_groups_from_mapping()
-    try:
-        results_df = get_results_for_figure()
-        create_summary_figure(results_df)
-        overall_counts = results_df['tipping_point_type'].value_counts()
-        plot_histogram(overall_counts, 'img/overall_distribution.pdf')
-    except Exception as e:
-        print(f"Error in final processing: {e}")
-    print("Tipping points analysis complete!")
-    return results_df
+    # plot_dl_figs = True
+    # specific_species_to_plot = []
+    # if plot_dl_figs:
+    #     species_to_plot = specific_species_to_plot
+    # else:
+    #     species_to_plot = None
+    # results = run_analysis_pipeline(
+    #     min_records=min_records, force_reclassification=force_reclassification, species_to_plot=species_to_plot, n_jobs=-1, batch_size=1, specific_species_list=species_list_to_process
+    # )
+    # update_taxonomic_groups_from_mapping()
+    # try:
+    #     results_df = get_results_for_figure()
+    #     create_summary_figure(results_df)
+    #     overall_counts = results_df['tipping_point_type'].value_counts()
+    #     plot_histogram(overall_counts, 'img/overall_distribution.pdf')
+    # except Exception as e:
+    #     print(f"Error in final processing: {e}")
+    # print("Tipping points analysis complete!")
+    # return results_df
 
 if __name__ == "__main__":
     results = main()

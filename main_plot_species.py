@@ -105,7 +105,7 @@ def load_biotime_data(filepath, top_n=100):
     species_count.columns = ['species', 'count']
     return df[["SPECIES_ID", "TIME", "ABUNDANCE", "STUDY_ID", "LATITUDE", "LONGITUDE"]], species_count
 
-def load_and_filter_data(species_list, threshold=0.6):
+def load_and_filter_data(species_list, probability_threshold=0.6):
     results_file = 'csv/bifurcation_results_short.csv'
 #    extinction_file = 'csv/extinction_risk_assessment.csv'
     if not os.path.exists(results_file):
@@ -114,7 +114,7 @@ def load_and_filter_data(species_list, threshold=0.6):
     try: # Load results for target species only
         results_df = pd.read_csv(results_file)
         results_df['tipping_point_type'] = results_df.apply(
-            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation',
+            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= probability_threshold else 'no-bifurcation',
             axis=1
         )
         results_df = results_df[results_df['species'].isin(species_list)] # Filter for target species
@@ -365,13 +365,28 @@ def plot_dl_predictions_pdf(species_name, results_df):
     except Exception as e:
         print(f"Error creating DL predictions for {species_name}: {str(e)}")
 
+def abbreviate_bifurcation_type(name):
+    if name == 'fold bifurcation':
+        return 'fold bif.'
+    elif name == 'transcritical bifurcation':
+        return 'transc. bif.'
+    elif name == 'Hopf bifurcation':
+        return 'Hopf bif.'
+    elif name == 'no-bifurcation':
+        return 'no-bif.'
+    else:
+        return name
+
 def plot_species_summary(target_species): # , extinction_df
     set_plot_style()
     os.makedirs('img', exist_ok=True)
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(16, 12))
     # Plot 1: Tipping point types
     if not target_species.empty and 'tipping_point_type' in target_species.columns:
-        tipping_counts = target_species['tipping_point_type'].value_counts()
+        # Apply abbreviation to each tipping point type label
+        target_species_abbr = target_species.copy()
+        target_species_abbr['tipping_point_type_abbr'] = target_species_abbr['tipping_point_type'].apply(abbreviate_bifurcation_type)
+        tipping_counts = target_species_abbr['tipping_point_type_abbr'].value_counts()
         if not tipping_counts.empty:
             colors = ['red', 'blue', 'green', 'orange', 'purple']
             bars = ax1.bar(tipping_counts.index, tipping_counts.values, 
@@ -488,10 +503,10 @@ def print_species_details(target_species): # , extinction_df
         print("-" * 40)
 
 def main():
-    threshold=0.4
+    probability_threshold=0.5
     print("Starting PDF plot generation for target species...")
     print(f"Species to plot: {SPECIES_TO_PLOT}")
-    target_species = load_and_filter_data(SPECIES_TO_PLOT, threshold) # , extinction_df
+    target_species = load_and_filter_data(SPECIES_TO_PLOT, probability_threshold) # , extinction_df
     if target_species is None or target_species.empty:
         print("No data found for the specified species")
         return

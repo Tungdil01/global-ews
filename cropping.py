@@ -1,46 +1,51 @@
 import pandas as pd
 import numpy as np
-
-MICRO_GROUPS = {'Bacteria','Choanoflagellata','Ciliophora','Cryptophyta','Haptophyta','Ochrophyta','Pancryptista','Rhizaria','Myzozoa','Euglenozoa'}
-GAP_THRESHOLD = 50
-MIN_SPAN_MACRO = 20      # years for macroorganisms
-MIN_SPAN_MICRO = 20      # months for microorganisms
+from scipy import stats
 
 def load_data(bif_path, raw_path):
     df_bif = pd.read_csv(bif_path)
-    df_raw = pd.read_csv(raw_path, usecols=['valid_name','YEAR','MONTH','taxon'])
-    df_raw = df_raw.dropna(subset=['YEAR','valid_name','MONTH'])
+    df_raw = pd.read_csv(raw_path, usecols=['valid_name','YEAR','MONTH','taxon','ABUNDANCE'])
+    df_raw = df_raw.dropna(subset=['YEAR','valid_name','MONTH','ABUNDANCE'])
     df_raw['YEAR'] = df_raw['YEAR'].astype(int)
+    df_raw['ABUNDANCE'] = pd.to_numeric(df_raw['ABUNDANCE'], errors='coerce')
+    df_raw = df_raw[df_raw['ABUNDANCE'] > 0]
     return df_bif, df_raw
 
-def filter_species(df_bif, df_raw, gap_threshold, micro_groups, min_span_macro, min_span_micro):
+def filter_species_sibly(df_bif, df_raw):
     bif_species = set(df_bif['species'].str.strip())
     raw_groups = df_raw.groupby('valid_name')
     kept = set()
     for sp in bif_species:
         if sp not in raw_groups.groups:
             continue
-        group = raw_groups.get_group(sp)
-        taxon = group['taxon'].dropna().iloc[0] if not group['taxon'].dropna().empty else None
-        is_micro = taxon in micro_groups if taxon else False
-        if is_micro:
-            months = group['YEAR'] * 12 + group['MONTH']
-            months_unique = np.sort(months.unique())
-            if len(months_unique) == 0:
-                continue
-            span_months = months_unique[-1] - months_unique[0]
-            max_gap = np.max(np.diff(months_unique)) if len(months_unique) > 1 else 0
-            if span_months < min_span_micro:
-                continue
-        else:
-            years = np.sort(group['YEAR'].unique())
-            if len(years) == 0:
-                continue
-            span_years = years[-1] - years[0]
-            max_gap = np.max(np.diff(years)) if len(years) > 1 else 0
-            if span_years < min_span_macro:
-                continue
-        if max_gap > gap_threshold:
+        group = raw_groups.get_group(sp).copy()
+        group['TIME'] = group['YEAR'] + (group['MONTH'] - 1) / 12.0
+        group = group.sort_values('TIME')
+        times = group['TIME'].values
+        abund = group['ABUNDANCE'].values
+        # find contiguous blocks where gap <= 1.1 years (step 4: contiguous subseries)
+        blocks = []
+        start = 0
+        for i in range(1, len(times)):
+            if times[i] - times[i-1] > 1.1:
+                blocks.append((start, i))
+                start = i
+        blocks.append((start, len(times)))
+        # select longest block with >=5 years (step 4: five or more years)
+        best_block = None
+        best_len = 0
+        for s,e in blocks:
+            if e - s >= 5:
+                if e - s > best_len:
+                    best_len = e - s
+                    best_block = (s, e)
+        if best_block is None:
+            continue
+        s, e = best_block
+        block_times = times[s:e]
+        block_abund = abund[s:e]
+        # step 4: non-zero, not all same, pgr calculable
+        if np.any(block_abund <= 0) or np.var(block_abund) == 0:
             continue
         kept.add(sp)
     return kept
@@ -58,9 +63,9 @@ def main():
     bif_path = 'csv/bifurcation_results_short.csv'
     raw_path = 'data/biotime_v2_full_2025/biotime_v2_rawdata_2025.csv'
     cropped_path = bif_path
-    verif_path = 'csv/verification.csv'
+    verif_path = 'csv/verification_sibly.csv'
     df_bif, df_raw = load_data(bif_path, raw_path)
-    kept = filter_species(df_bif, df_raw, GAP_THRESHOLD, MICRO_GROUPS, MIN_SPAN_MACRO, MIN_SPAN_MICRO)
+    kept = filter_species_sibly(df_bif, df_raw)
     save_cropped(df_bif, kept, cropped_path)
     verification_list = [
         '32 Species Weeds', 'Abagrotis placida', 'Abarenicola pacifica', 'Abbottina rivularis',

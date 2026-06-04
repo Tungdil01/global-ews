@@ -44,6 +44,18 @@ def fyear_to_date(fyear):
     day_of_year = int(round(frac * 365)) + 1
     return pd.Timestamp(year=year, month=1, day=1) + pd.Timedelta(days=day_of_year-1)
 
+def abbreviate_bifurcation_type(name):
+    if name == 'fold bifurcation':
+        return 'fold bif.'
+    elif name == 'transcritical bifurcation':
+        return 'transc. bif.'
+    elif name == 'Hopf bifurcation':
+        return 'Hopf bif.'
+    elif name == 'no-bifurcation':
+        return 'no-bif.'
+    else:
+        return name
+
 def plot_time_series(species, species_data, transition_year, tipping_type, iucn_status, invasive_status, output_dir):
     set_plot_style()
     dates = species_data['TIME'].apply(fyear_to_date)
@@ -60,7 +72,7 @@ def plot_time_series(species, species_data, transition_year, tipping_type, iucn_
     max_abundance = abundances.max()
     plt.yticks([max_abundance], [str(int(max_abundance))])
     plt.tight_layout()
-    tipping_str = str(tipping_type) if pd.notna(tipping_type) else ''
+    tipping_str = abbreviate_bifurcation_type(str(tipping_type)) if pd.notna(tipping_type) else ''
     iucn_str = str(iucn_status) if pd.notna(iucn_status) else ''
     invasive_str = str(invasive_status) if pd.notna(invasive_status) else ''
     filename = f"{tipping_str}{iucn_str}{invasive_str}{species.replace(' ', '_')}.pdf"
@@ -173,7 +185,7 @@ def main():
     iucn_dict = pd.Series(iucn_df.iucn_status.values, index=iucn_df.species).to_dict()
     invasive_dict = pd.Series(invasive_df.invasive_status.values, index=invasive_df.species).to_dict()
     for target in target_species:
-        # Try to find in bifurcation data (optional)
+        # find in bifurcation data
         matches = difflib.get_close_matches(target, bifurcation_species, n=1, cutoff=0.8)
         if matches:
             matched_species = matches[0]

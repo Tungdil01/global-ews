@@ -15,17 +15,17 @@ plt.rcParams.update({
     'lines.linewidth': 1.5
 })
 
-def apply_tipping_point_threshold(df, threshold=0.3):
+def apply_tipping_point_probability_threshold(df, probability_threshold=0.3):
     if 'raw_tipping_point_type' in df.columns and 'best_probability' in df.columns:
         df['tipping_point_type'] = df.apply(
-            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= threshold else 'no-bifurcation',
+            lambda row: row['raw_tipping_point_type'] if row['best_probability'] >= probability_threshold else 'no-bifurcation',
             axis=1
         )
     return df
 
-def get_top_taxonomic_groups(threshold):
+def get_top_taxonomic_groups(probability_threshold):
     freq_df = pd.read_csv('csv/bifurcation_results_short.csv')
-    freq_df = apply_tipping_point_threshold(freq_df, threshold)
+    freq_df = apply_tipping_point_probability_threshold(freq_df, probability_threshold)
     # Count species per taxonomic group and get top 20
     taxon_counts = freq_df['taxonomic_group'].value_counts()
     if 'Other' in taxon_counts.index:
@@ -159,9 +159,9 @@ def plot_species_locations(top_taxa, taxonomic_colors):
 
 def main():
     os.makedirs('img', exist_ok=True)
-    threshold=0.5
+    probability_threshold=0.5
     # Get top taxonomic groups and their colors
-    top_taxa, taxonomic_colors = get_top_taxonomic_groups(threshold)
+    top_taxa, taxonomic_colors = get_top_taxonomic_groups(probability_threshold)
     print(f"Top 20 taxonomic groups: {top_taxa}")
     print("Generating time series ranges figure...")
     plot_time_series_ranges(top_taxa, taxonomic_colors)
