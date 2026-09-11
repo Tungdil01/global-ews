@@ -57,17 +57,20 @@ pip install ewstools || echo "Warning: pip install ewstools returned a non-zero 
 
 # List of Python scripts to run
 scripts=(
-    "main.py"
-    "remove_duplicates.py"
-    "remove_duplicates_2.py"
+    # "updated_cache.py"
+    # "only_year_1900.py"
+    "main_orchestrator.py"
+    "build_short.py"
+    "plot_dl_figure.py"
     "species_status_assessment.py"
-    "cropping.py"
     "time_series.py"
     "biomes.py"
-    "comparison_bayesian.py"
+    "comparison_logistic_frequentist.py"
     "data_plot.py"
     "main_plot_species.py"
     "transition_year.py"
+    "count.py"
+    "data_plot_count.py"
 )
 
 echo "Running Python scripts in environment '$ENV_NAME'..."
