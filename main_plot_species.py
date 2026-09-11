@@ -503,7 +503,7 @@ def print_species_details(target_species): # , extinction_df
         print("-" * 40)
 
 def main():
-    probability_threshold=0.5
+    probability_threshold=0.7
     print("Starting PDF plot generation for target species...")
     print(f"Species to plot: {SPECIES_TO_PLOT}")
     target_species = load_and_filter_data(SPECIES_TO_PLOT, probability_threshold) # , extinction_df

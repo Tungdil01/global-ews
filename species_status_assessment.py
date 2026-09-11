@@ -4,6 +4,7 @@ import urllib.parse
 from pathlib import Path
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from main_dl import apply_synonym_mapping, clean_taxonomic_groups
 warnings.filterwarnings('ignore')
 
 class SpeciesDataCollector:
@@ -34,10 +35,8 @@ class SpeciesDataCollector:
                 print(f"IUCN token loaded from {loaded_from} (value not displayed).")
             else:
                 print("IUCN token loaded from environment (value not displayed).")
-        # We will not load combined databases from CSVs anymore.
         self.invasive_species_df = None
         self.iucn_species_df = None
-        # New attribute for invasive index
         self.invasive_index = None
 
     def _create_session(self):
@@ -50,73 +49,64 @@ class SpeciesDataCollector:
 
     @staticmethod
     def generate_name_variants(name):
-        """
-        Generate a list of possible cleaned scientific names from the input.
-        Handles parentheses, var., subsp., subg., Candidatus, complex, etc.
-        Returns a set of unique candidate strings.
-        """
         if pd.isnull(name) or not isinstance(name, str):
             return set()
         original = name.strip()
         candidates = {original}
-        # 1) Remove parenthetical content entirely (variant A)
         no_paren = re.sub(r'\([^)]*\)', '', original).strip()
         no_paren = re.sub(r'\s+', ' ', no_paren)
         if no_paren and no_paren != original:
             candidates.add(no_paren)
-        # 2) If parentheses present, try using the inside as genus (variant B)
         paren_match = re.search(r'\(([^)]+)\)', original)
         if paren_match:
             inside = paren_match.group(1).strip()
-            # Replace the first word with inside, keep rest after closing parenthesis
-            # Example: "Acartia (Acanthacartia) tonsa" -> "Acanthacartia tonsa"
             parts = re.split(r'\([^)]*\)', original)
             if len(parts) == 2:
                 before = parts[0].strip()
                 after = parts[1].strip()
                 if before and after:
-                    # take first word of before? Actually we want to replace the genus
                     before_words = before.split()
                     if before_words:
-                        # new name: inside + rest of before (without first word?) + after
-                        # Simpler: just inside + " " + after
                         candidate = f"{inside} {after}".strip()
                         candidates.add(candidate)
-        # 3) Remove var., subsp., subg., f., etc. and everything after
         for pattern in [r'\s+var\.\s+.*', r'\s+subsp\.\s+.*', r'\s+ssp\.\s+.*', r'\s+subg\.\s+.*', r'\s+f\.\s+.*', r'\s+complex\s*$']:
             cleaned = re.sub(pattern, '', original, flags=re.IGNORECASE).strip()
             if cleaned and cleaned != original:
                 candidates.add(cleaned)
-        # 4) Handle "subg." specially: take everything after "subg." and treat as name
         if 'subg.' in original.lower():
-            # find index of "subg." and take substring after it
             idx = original.lower().find('subg.')
             if idx != -1:
                 after = original[idx + 5:].strip()
                 if after:
                     candidates.add(after)
-        # 5) Handle "Candidatus": remove it if present
         if 'candidatus' in original.lower():
             without_cand = re.sub(r'Candidatus\s+', '', original, flags=re.IGNORECASE).strip()
             candidates.add(without_cand)
-        # 6) Remove trailing numbers, underscores, etc. (like clean_taxonomic_groups)
         cleaned = re.sub(r'[\d_]+$', '', original).strip()
         if cleaned and cleaned != original:
             candidates.add(cleaned)
-        # Remove any empty strings
+        # Additional cleaning using imported functions
+        cleaned_extra = clean_taxonomic_groups(original)
+        if cleaned_extra and cleaned_extra != original:
+            candidates.add(cleaned_extra)
+        mapped = apply_synonym_mapping(cleaned_extra or original)
+        if mapped and mapped != original and mapped != cleaned_extra:
+            candidates.add(mapped)
+        words = original.split()
+        if len(words) >= 2:
+            two_word = " ".join(words[:2])
+            if two_word != original:
+                candidates.add(two_word)
         candidates = {c for c in candidates if c}
         return candidates
 
     def load_invasive_sources(self):
-        """Load all invasive source files and build an index mapping cleaned name variants to source info."""
         print("Building invasive species index from source files...")
-        index = {}  # key: cleaned variant (string), value: (source_name, classification)
-        # GIATAR file
+        index = {}
         giatar_file = "data/GIATAR/dataset/species lists/invasive_all_source.csv"
         if os.path.exists(giatar_file):
             try:
                 df = pd.read_csv(giatar_file)
-                # columns to search
                 cols = ['taxonCABI', 'taxonSINAS', 'taxonEPPO', 'taxonDAISIE', 'scientificName', 'canonicalName', 'taxonomic_species', 'gbif_species']
                 for col in cols:
                     if col in df.columns:
@@ -127,7 +117,6 @@ class SpeciesDataCollector:
                                     index[v] = ('GIATAR', 'Invasive (GIATAR)')
             except Exception as e:
                 print(f"Error processing GIATAR file: {e}")
-        # GISD+EICAT exports
         eicat_files = ["data/invasive/GISD+EICAT+export_1.xlsx","data/invasive/GISD+EICAT+export_2.xlsx","data/invasive/GISD+EICAT+export_3.xlsx","data/invasive/GISD+EICAT+export_4.xlsx","data/invasive/GISD+EICAT+export_5.xlsx"]
         for f in eicat_files:
             if os.path.exists(f):
@@ -138,7 +127,6 @@ class SpeciesDataCollector:
                             variants = self.generate_name_variants(val)
                             for v in variants:
                                 if v not in index:
-                                    # get classification if available
                                     cat = ''
                                     if 'EICAT Category' in df.columns and val in df['Species'].values:
                                         cat_row = df[df['Species'] == val].iloc[0]
@@ -146,7 +134,6 @@ class SpeciesDataCollector:
                                     index[v] = (os.path.basename(f), cat if cat else 'Listed in GISD')
                 except Exception as e:
                     print(f"Error processing {f}: {e}")
-        # e120_Plant_aboveground_biomass.csv
         plant_file = "data/invasive/e120_Plant_aboveground_biomass.csv"
         if os.path.exists(plant_file):
             try:
@@ -159,7 +146,6 @@ class SpeciesDataCollector:
                                 index[v] = ('e120_Plant_aboveground_biomass.csv', 'Listed')
             except Exception as e:
                 print(f"Error processing {plant_file}: {e}")
-        # E244_Enemy_Removal_Aboveground_Biomass.csv
         enemy_file = "data/invasive/E244_Enemy_Removal_Aboveground_Biomass.csv"
         if os.path.exists(enemy_file):
             try:
@@ -172,13 +158,11 @@ class SpeciesDataCollector:
                                 index[v] = ('E244_Enemy_Removal_Aboveground_Biomass.csv', 'Listed')
             except Exception as e:
                 print(f"Error processing {enemy_file}: {e}")
-        # e120_Main_Plots_All_Arthropod_Insect_Sweepnet_Sampling_1996_2006.txt
         arthropod_file = "data/invasive/e120_Main_Plots_All_Arthropod_Insect_Sweepnet_Sampling_1996_2006.txt"
         if os.path.exists(arthropod_file):
             try:
                 df = pd.read_csv(arthropod_file, sep='\t')
                 if 'Genus' in df.columns and 'Specific.epithet' in df.columns:
-                    # combine Genus and Specific.epithet to form scientific name
                     combined = df['Genus'].astype(str).str.strip() + ' ' + df['Specific.epithet'].astype(str).str.strip()
                     for name in combined:
                         if name and name != 'nan nan':
@@ -192,7 +176,6 @@ class SpeciesDataCollector:
         print(f"Invasive index built with {len(index)} unique name variants.")
 
     def get_invasive_status_from_index(self, species_name):
-        """Return (status, source) for the species by checking variants against index."""
         if self.invasive_index is None:
             self.load_invasive_sources()
         variants = self.generate_name_variants(species_name)
@@ -206,22 +189,16 @@ class SpeciesDataCollector:
         return None, None
 
     def get_iucn_status_gbif(self, species_name):
-        """
-        Query GBIF for IUCN status using the given species name.
-        Returns (status, source) where source is 'GBIF'.
-        """
         gbif_base = "https://api.gbif.org/v1"
         variants = self.generate_name_variants(species_name)
         for name in variants:
             try:
-                # name match
                 match_url = f"{gbif_base}/species/match"
                 mresp = self.session.get(match_url, params={"name": name}, timeout=15)
                 if mresp.status_code == 200:
                     mjson = mresp.json()
                     usage_key = mjson.get("usageKey") or mjson.get("speciesKey")
                     if usage_key:
-                        # get species details
                         spec_url = f"{gbif_base}/species/{usage_key}"
                         sresp = self.session.get(spec_url, timeout=15)
                         if sresp.status_code == 200:
@@ -229,7 +206,6 @@ class SpeciesDataCollector:
                             iucn_cat = sjson.get("iucnRedListCategory") or sjson.get("threatenedStatus") or ""
                             if iucn_cat:
                                 return str(iucn_cat).strip(), "GBIF"
-                        # try explicit iucn endpoint
                         cat_url = f"{gbif_base}/species/{usage_key}/iucnRedListCategory"
                         crep = self.session.get(cat_url, timeout=15)
                         if crep.status_code == 200:
@@ -242,50 +218,30 @@ class SpeciesDataCollector:
                                 cat = cjson[0].get("category") or cjson[0].get("iucnRedListCategory") or ""
                                 if cat:
                                     return str(cat).strip(), "GBIF"
-                    # if we got a match but no IUCN status, check confidence
                     confidence = mjson.get("confidence") or int(mjson.get("score", 0))
                     if confidence >= 50:
                         return "Not Assessed", "GBIF"
-                # fallback to next variant
             except Exception:
                 continue
         return "Species Not Found", "GBIF"
 
     def prepare_bifurcation_shortlist(self):
         print("Preparing bifurcation shortlist...")
-        bif_file = "csv/bifurcation_results_cleaned.csv"
-        tax_file = "csv/taxonomic_cache_cleaned.csv"
-        if not os.path.exists(bif_file):
-            print(f"Error: {bif_file} not found.")
+        short_file = "csv/bifurcation_results_short.csv"
+        if not os.path.exists(short_file):
+            print(f"Error: {short_file} not found.")
             return None
-        bif_df = pd.read_csv(bif_file)
-        if os.path.exists(tax_file):
-            tax_df = pd.read_csv(tax_file)
-            if 'species' in tax_df.columns and 'taxonomic_group' in tax_df.columns:
-                bif_df = bif_df.merge(tax_df[['species', 'taxonomic_group']], on='species', how='left', suffixes=('', '_from_tax'))
-                if 'taxonomic_group_from_tax' in bif_df.columns:
-                    bif_df['taxonomic_group'] = bif_df['taxonomic_group_from_tax'].combine_first(bif_df['taxonomic_group'])
-                    bif_df.drop(columns=['taxonomic_group_from_tax'], inplace=True)
-                bif_df.to_csv(bif_file, index=False)
-                print("Updated bifurcation_results_cleaned.csv with taxonomic_group from cache.")
-        if 'transition_year' not in bif_df.columns:
-            print("Error: 'transition_year' column not found in bifurcation_results_cleaned.csv")
+        short_df = pd.read_csv(short_file)
+        print(f"Loaded {len(short_df)} species from {short_file}")
+        if 'transition_year' not in short_df.columns:
+            print("Error: 'transition_year' column not found in bifurcation_results_short.csv")
             return None
-        short_df = bif_df[bif_df['transition_year'].notna() & (bif_df['transition_year'].astype(str).str.strip() != '')].copy()
-        os.makedirs("csv", exist_ok=True)
-        short_df.to_csv("csv/bifurcation_results_short.csv", index=False)
-        print(f"Saved {len(short_df)} species to csv/bifurcation_results_short.csv")
         return short_df
 
     def build_conservation_database(self, species_df):
-        """
-        For each species in species_df (with columns species, taxonomic_group),
-        query GBIF for IUCN status and source, and append to csv/iucn_species.csv.
-        """
         print("Building IUCN conservation database from GBIF...")
         out_file = "csv/iucn_species.csv"
         os.makedirs("csv", exist_ok=True)
-        # if file exists, load already processed species
         processed = set()
         if os.path.exists(out_file):
             try:
@@ -295,7 +251,6 @@ class SpeciesDataCollector:
                     print(f"Found existing {out_file} with {len(processed)} species.")
             except Exception:
                 pass
-        # open file in append mode
         mode = 'a' if os.path.exists(out_file) else 'w'
         with open(out_file, mode, newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(f, fieldnames=['species', 'taxonomic_group', 'iucn_status', 'source'])
@@ -305,7 +260,6 @@ class SpeciesDataCollector:
             for i, row in species_df.iterrows():
                 species = str(row['species']).strip()
                 if species in processed:
-                    print(f"Skipping already processed: {species}")
                     continue
                 tax_group = row.get('taxonomic_group', '')
                 print(f"GBIF lookup {i+1}/{total}: {species}")
@@ -313,14 +267,10 @@ class SpeciesDataCollector:
                 writer.writerow({'species': species, 'taxonomic_group': tax_group, 'iucn_status': status, 'source': source})
                 f.flush()
                 processed.add(species)
-                time.sleep(random.uniform(0.5, 1.2))  # be gentle to GBIF
+                time.sleep(random.uniform(0.5, 1.2))
         print(f"Conservation database saved to {out_file}")
 
     def build_invasive_database(self, species_df):
-        """
-        For each species in species_df, check invasive status using the index,
-        and append to csv/invasive_species.csv.
-        """
         print("Building invasive species database from source files...")
         if self.invasive_index is None:
             self.load_invasive_sources()
@@ -344,7 +294,6 @@ class SpeciesDataCollector:
             for i, row in species_df.iterrows():
                 species = str(row['species']).strip()
                 if species in processed:
-                    print(f"Skipping already processed: {species}")
                     continue
                 tax_group = row.get('taxonomic_group', '')
                 print(f"Invasive check {i+1}/{total}: {species}")
@@ -355,7 +304,6 @@ class SpeciesDataCollector:
                 writer.writerow({'species': species, 'taxonomic_group': tax_group, 'invasive_status': status, 'source': source})
                 f.flush()
                 processed.add(species)
-        print(f"Invasive database saved to {out_file}")
 
     def load_combined_databases(self):
         print("Loading and combining invasive species databases...")
@@ -444,14 +392,7 @@ class SpeciesDataCollector:
             print(" No invasive species data found from any source")
 
     def create_iucn_species_csv(self):
-        """
-        Create combined IUCN species database:
-          1) Try IUCN v4 bulk /species endpoint (requires token).
-          2) If bulk fails or is not allowed, fall back to GBIF name-match -> species -> iucnRedListCategory.
-        Saves progress files during processing and the final CSV to csv/iucn_species.csv.
-        """
         print("Creating combined IUCN species database (attempt bulk, then GBIF fallback)...")
-        # Attempt IUCN bulk (paginated) only if token present
         if self.iucn_token:
             try:
                 all_iucn = []
@@ -513,7 +454,6 @@ class SpeciesDataCollector:
                 print(f"Error during bulk download attempt: {str(e)}")
         else:
             print("No IUCN token available for bulk download; will try GBIF fallback.")
-        # GBIF fallback (does not require IUCN token)
         biotime_species_file = "csv/biotime_species_count.csv"
         if not os.path.exists(biotime_species_file):
             print(f"BioTime species file not found for fallback: {biotime_species_file}")
@@ -532,7 +472,6 @@ class SpeciesDataCollector:
             return
         biotime_sorted = biotime_df.sort_values("count", ascending=False) if "count" in biotime_df.columns else biotime_df
         target_species = biotime_sorted.head(5687)
-        # Check for existing progress file and load already processed species
         processed_species = set()
         all_iucn_data = []
         progress_file = "csv/iucn_species_progress.csv"
@@ -545,7 +484,6 @@ class SpeciesDataCollector:
                     print(f"Found existing progress file with {len(processed_species)} processed species")
             except Exception as e:
                 print(f"Warning: Could not read progress file {progress_file}: {str(e)}")
-        # Filter target species to only unprocessed ones
         unprocessed_species = []
         for idx, row in target_species.iterrows():
             species_name = str(row["species"]).strip()
@@ -563,7 +501,6 @@ class SpeciesDataCollector:
                 continue
             print(f"GBIF lookup {processed+1}/{total}: {species_name}")
             try:
-                # 1) name match to get usageKey
                 match_url = f"{gbif_base}/species/match"
                 mresp = self.session.get(match_url, params={"name": species_name}, timeout=15)
                 usage_key = None
@@ -572,7 +509,6 @@ class SpeciesDataCollector:
                     mjson = mresp.json()
                     usage_key = mjson.get("usageKey") or mjson.get("speciesKey") or None
                     matched_confidence = mjson.get("confidence") or int(mjson.get("score", 0))
-                # 2) if usageKey found, request species endpoint and look for iucnRedListCategory
                 iucn_cat = ""
                 if usage_key:
                     spec_url = f"{gbif_base}/species/{usage_key}"
@@ -594,7 +530,6 @@ class SpeciesDataCollector:
                                             iucn_cat = first.get("category") or first.get("iucnRedListCategory") or ""
                             except Exception:
                                 iucn_cat = ""
-                # Normalize result
                 if iucn_cat:
                     final_status = str(iucn_cat).strip()
                     source = "GBIF_iucnRedListCategory"
@@ -609,15 +544,12 @@ class SpeciesDataCollector:
                 print(f" Warning: GBIF lookup failed for '{species_name}': {str(e)}")
                 all_iucn_data.append({"species": species_name, "iucn_status": f"GBIF Error: {str(e)}", "source": "GBIF_fallback"})
             processed += 1
-            # Save progress every 50 records
             if processed % 50 == 0:
                 os.makedirs("csv", exist_ok=True)
                 progress_df = pd.DataFrame(all_iucn_data)
                 progress_df.to_csv(progress_file, index=False)
                 print(f" GBIF progress saved: {progress_file} ({len(progress_df)} records)")
-            # Respect remote servers
             time.sleep(random.uniform(0.5, 1.2))
-        # Save final fallback CSV
         if all_iucn_data:
             os.makedirs("csv", exist_ok=True)
             iucn_df = pd.DataFrame(all_iucn_data)
@@ -625,7 +557,6 @@ class SpeciesDataCollector:
             iucn_df.to_csv("csv/iucn_species.csv", index=False)
             print(f" Fallback IUCN species database saved (GBIF-derived): csv/iucn_species.csv ({len(iucn_df)} records)")
             self.iucn_species_df = iucn_df
-            # Remove progress file after successful completion
             if os.path.exists(progress_file):
                 try:
                     os.remove(progress_file)
@@ -639,14 +570,6 @@ class SpeciesDataCollector:
         empty_df.to_csv("csv/iucn_species.csv", index=False)
 
     def get_iucn_status(self, species_name):
-        """
-        Get IUCN Red List status for a species.
-        Workflow:
-          1) Clean species name.
-          2) If IUCN token present, query IUCN v4 /species/name/{name}.
-          3) If IUCN call fails or returns no result, fallback to GBIF name-match -> species -> iucnRedListCategory.
-        Returns canonical status string (e.g., 'LC', 'EN', 'Species Not Found', 'IUCN_TOKEN_INVALID', etc.).
-        """
         try:
             name = str(species_name).strip()
             name = re.sub(r"\[.*?\]", "", name)
@@ -655,7 +578,6 @@ class SpeciesDataCollector:
             name = re.sub(r"\s+", " ", name)
             if name == "":
                 return "Species Not Found"
-            # 1) IUCN v4 API (preferred) if token present
             if self.iucn_token:
                 encoded_name = urllib.parse.quote(name, safe="")
                 url_name = f"{self.iucn_base_url}/species/name/{encoded_name}"
@@ -678,16 +600,12 @@ class SpeciesDataCollector:
                             if "classification" in first and first["classification"]:
                                 return first["classification"]
                             return "Not Assessed"
-                        # fall through to GBIF fallback if no results
                     elif resp.status_code == 401:
                         return "IUCN_TOKEN_INVALID"
                     elif resp.status_code == 404:
-                        # let GBIF fallback handle it
                         pass
                     else:
-                        # allow GBIF fallback
                         pass
-            # 2) GBIF fallback: match name -> usageKey -> iucnRedListCategory
             gbif_base = "https://api.gbif.org/v1"
             try:
                 match_url = f"{gbif_base}/species/match"
@@ -704,7 +622,6 @@ class SpeciesDataCollector:
                             iucn_cat = sjson.get("iucnRedListCategory") or sjson.get("threatenedStatus") or ""
                             if iucn_cat:
                                 return str(iucn_cat).strip()
-                        # explicit iucnRedListCategory endpoint
                         cat_url = f"{gbif_base}/species/{usage_key}/iucnRedListCategory"
                         crep = self.session.get(cat_url, timeout=15)
                         if crep.status_code == 200:
@@ -721,7 +638,6 @@ class SpeciesDataCollector:
                                         return first.get("category") or first.get("iucnRedListCategory") or "Not Assessed"
                             elif isinstance(cjson, list) and len(cjson) > 0 and isinstance(cjson[0], dict):
                                 return cjson[0].get("category") or cjson[0].get("iucnRedListCategory") or "Not Assessed"
-                        # No category found at GBIF
                         if matched_confidence and int(matched_confidence) >= 50:
                             return "Not Assessed"
                         return "Species Not Found"
@@ -792,7 +708,6 @@ class SpeciesDataCollector:
         header_needed = True
         processed_count = 0
         os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
-        # Check for existing output file to resume processing
         if os.path.exists(output_file):
             try:
                 existing = pd.read_csv(output_file)
@@ -822,13 +737,11 @@ class SpeciesDataCollector:
                     continue
                 print(f"Processing {idx+1}/{len(top_species)}: {species}")
                 status = None
-                # First try to get status from bulk IUCN database
                 if self.iucn_species_df is not None and "species" in self.iucn_species_df.columns:
                     matched = self.iucn_species_df[self.iucn_species_df["species"].astype(str).str.strip().str.lower() == species.lower()]
                     if not matched.empty:
                         status = str(matched.iloc[0].get("iucn_status", "")).strip()
                         print(f"  Retrieved status from bulk file: {status}")
-                # If not found in bulk, query API
                 if status is None or status == "":
                     status = self.get_iucn_status(species)
                     print(f"  Queried API status: {status}")
@@ -913,22 +826,57 @@ class SpeciesDataCollector:
         threatened_percentage = (threatened_count / len(df)) * 100
         print(f"Threatened species (VU/EN/CR): {threatened_count} ({threatened_percentage:.1f}%)")
 
+def recheck_not_assessed_species(short_df):
+    iucn_file = "csv/iucn_species.csv"
+    if not os.path.exists(iucn_file):
+        print("iucn_species.csv not found. Skipping recheck.")
+        return
+    iucn_df = pd.read_csv(iucn_file)
+    short_species = set(short_df['species'].astype(str).str.strip())
+    mask = (iucn_df['iucn_status'].astype(str).str.strip() == "Not Assessed") & (iucn_df['species'].astype(str).str.strip().isin(short_species))
+    to_recheck = iucn_df[mask].copy()
+    if len(to_recheck) == 0:
+        print("No 'Not Assessed' species from short_df found to recheck.")
+        return
+    print(f"Rechecking {len(to_recheck)} species...")
+    collector = SpeciesDataCollector()
+    updated = 0
+    for idx, row in to_recheck.iterrows():
+        species = str(row['species']).strip()
+        variants = collector.generate_name_variants(species)
+        found_status = None
+        for variant in variants:
+            status = collector.get_iucn_status(variant)
+            if status and status != "Not Assessed" and not status.startswith("Error") and not status.startswith("Request") and not status.startswith("GBIF API Error"):
+                found_status = status
+                break
+        if found_status is not None:
+            iucn_df.at[idx, 'iucn_status'] = found_status
+            updated += 1
+            print(f"Updated {species} -> {found_status}")
+        else:
+            print(f"No better status found for {species}")
+    if updated > 0:
+        iucn_df.to_csv(iucn_file, index=False)
+        print(f"Recheck complete. Updated {updated} records in {iucn_file}")
+    else:
+        print("No updates.")
+
 def main():
     print("SPECIES CONSERVATION AND INVASIVENESS ASSESSMENT")
     print("=" * 60)
-    # Ensure directories exist
     Path("data").mkdir(exist_ok=True)
     Path("csv").mkdir(exist_ok=True)
+    RECHECK_NOT_ASSESSED = False
     collector = SpeciesDataCollector()
-    # Step 1: Prepare bifurcation shortlist
     short_df = collector.prepare_bifurcation_shortlist()
     if short_df is None or len(short_df) == 0:
         print("No species to process. Exiting.")
         return
-    # Step 2: Build conservation database (GBIF only)
     collector.build_conservation_database(short_df)
-    # Step 3: Build invasive database
     collector.build_invasive_database(short_df)
+    if RECHECK_NOT_ASSESSED:
+        recheck_not_assessed_species(short_df)
     print("\nAll tasks completed successfully.")
 
 if __name__ == "__main__":
