@@ -1,0 +1,296 @@
+species,dataset,timeseries_id,taxonomic_group,iucn_status,transition_year,tipping_point_type,best_probability
+Abudefduf vaigiensis,BioTIME,246,Actinopterygii,VULNERABLE,2011,Hopf bifurcation,0.332094632554799
+Acropora humilis,BioTIME,122,Cnidaria,ENDANGERED,2010,Hopf bifurcation,0.767496553063393
+Anas acuta,BioTIME,47,Aves,VULNERABLE,1974,no-bifurcation,0.433565335540334
+Ardisia floribunda,BioTIME,753,Tracheophyta,VULNERABLE,2004,Hopf bifurcation,0.764115798473358
+Acropora cytherea,BioTIME,122,Cnidaria,ENDANGERED,2010,transcritical bifurcation,0.387494803033769
+Aegolius funereus,BioTIME,582__seg01,Aves,VULNERABLE,1991,transcritical bifurcation,0.523628344479948
+Aegolius funereus,BioTIME,582__seg02,Aves,VULNERABLE,2013,transcritical bifurcation,0.423219819366932
+Agelaius tricolor,BioTIME,195,Aves,ENDANGERED,2004,no-bifurcation,0.361325416909494
+Alosa aestivalis,BioTIME,123,Actinopterygii,VULNERABLE,2008,transcritical bifurcation,0.640940109244548
+Alosa aestivalis,BioTIME,180,Actinopterygii,VULNERABLE,1987,transcritical bifurcation,0.48796187103726
+Amblyraja radiata,BioTIME,123,Chondrichthyes,VULNERABLE,2005,transcritical bifurcation,0.454321885481477
+Amblyraja radiata,BioTIME,119,Chondrichthyes,VULNERABLE,2009,transcritical bifurcation,0.530778232277953
+Anas acuta,BioTIME,624__seg01,Aves,VULNERABLE,2002,Hopf bifurcation,0.773245042562485
+Anguilla anguilla,BioTIME,832,Actinopterygii,CRITICALLY_ENDANGERED,2016,transcritical bifurcation,0.486552980377746
+Anguilla anguilla,BioTIME,831,Actinopterygii,CRITICALLY_ENDANGERED,2020,transcritical bifurcation,0.414275417895988
+Anguilla anguilla,BioTIME,848,Actinopterygii,CRITICALLY_ENDANGERED,2021,Hopf bifurcation,0.43210038356483
+Anguilla dieffenbachii,BioTIME,430,Actinopterygii,ENDANGERED,2011,transcritical bifurcation,0.466146025015041
+Anguilla anguilla,BioTIME,846,Actinopterygii,CRITICALLY_ENDANGERED,2023,transcritical bifurcation,0.38533309167251
+Anguilla dieffenbachii,BioTIME,431__seg01,Actinopterygii,ENDANGERED,2004,Hopf bifurcation,0.616360630467534
+Anguilla dieffenbachii,BioTIME,432,Actinopterygii,ENDANGERED,2015,transcritical bifurcation,0.41909977463074
+Apostichopus parvimensis,BioTIME,273,Echinodermata,VULNERABLE,2012,no-bifurcation,0.402999832569913
+Awaous commersoni,BioTIME,781,Actinopterygii,VULNERABLE,2014,no-bifurcation,0.312427465761721
+Bathytoshia centroura,BioTIME,212,Chondrichthyes,VULNERABLE,1979,transcritical bifurcation,0.466834983169974
+Calcarius ornatus,BioTIME,195,Aves,VULNERABLE,1999,no-bifurcation,0.526417161163408
+Calidris acuminata,BioTIME,374,Aves,VULNERABLE,2013,transcritical bifurcation,0.559002659103862
+Calidris ferruginea,BioTIME,582,Aves,VULNERABLE,2006,transcritical bifurcation,0.64615038447082
+Calidris ferruginea,BioTIME,374,Aves,VULNERABLE,2014,Hopf bifurcation,0.325547061767429
+Calidris tenuirostris,BioTIME,374,Aves,ENDANGERED,2013,transcritical bifurcation,0.566240454174113
+Carassius cuvieri,BioTIME,631,Actinopterygii,ENDANGERED,2018,no-bifurcation,0.458825370698469
+Carcharhinus amblyrhynchos,BioTIME,121,Chondrichthyes,ENDANGERED,2006,transcritical bifurcation,0.420362162170932
+Catharus bicknelli,BioTIME,337,Aves,VULNERABLE,2006,Hopf bifurcation,0.57379115074873
+Chaetura pelagica,BioTIME,195,Aves,VULNERABLE,2006,fold bifurcation,0.437718257401139
+Cheimarrichthys fosteri,BioTIME,432__seg01,Actinopterygii,VULNERABLE,2003,Hopf bifurcation,0.61671718172729
+Cheimarrichthys fosteri,BioTIME,430,Actinopterygii,VULNERABLE,2010,transcritical bifurcation,0.441957521252334
+Coryphopterus personatus,BioTIME,189,Actinopterygii,VULNERABLE,2009,transcritical bifurcation,0.421260756370612
+Cynoscion regalis,BioTIME,227,Actinopterygii,ENDANGERED,1993,transcritical bifurcation,0.498574856994674
+Dipturus batis,BioTIME,466,Chondrichthyes,CRITICALLY_ENDANGERED,2007,Hopf bifurcation,0.68307832647115
+Fratercula arctica,BioTIME,527,Aves,ENDANGERED,2019,transcritical bifurcation,0.606129680783488
+Fulmarus glacialis,BioTIME,163,Aves,VULNERABLE,2002,Hopf bifurcation,0.459576467610896
+Fulmarus glacialis,BioTIME,169,Aves,VULNERABLE,2006,transcritical bifurcation,0.410324083687738
+Glyptocephalus cynoglossus,BioTIME,180,Actinopterygii,VULNERABLE,1994,transcritical bifurcation,0.668123770831153
+Glyptocephalus cynoglossus,BioTIME,119,Actinopterygii,VULNERABLE,2010,transcritical bifurcation,0.611873798072338
+Glyptocephalus cynoglossus,BioTIME,466,Actinopterygii,VULNERABLE,2006,transcritical bifurcation,0.426701342500746
+Gobiomorphus hubbsi,BioTIME,430,Actinopterygii,VULNERABLE,2008,transcritical bifurcation,0.547947461111471
+Goniothalamus griffithii,BioTIME,753,Tracheophyta,ENDANGERED,2004,Hopf bifurcation,0.798492008820176
+Haematopus ostralegus,BioTIME,374,Aves,VULNERABLE,2010,Hopf bifurcation,0.52423312291503
+Haematopus ostralegus,BioTIME,624,Aves,VULNERABLE,2006,no-bifurcation,0.664798836782575
+Haematopus ostralegus,BioTIME,634,Aves,VULNERABLE,2009,Hopf bifurcation,0.545732099190354
+Haliaeetus albicilla,BioTIME,582,Aves,ENDANGERED,2019,transcritical bifurcation,0.862795877456665
+Halichoeres marginatus,BioTIME,45,Actinopterygii,VULNERABLE,2015,Hopf bifurcation,0.47771810144186
+Haliotis rufescens,BioTIME,469,Mollusca,CRITICALLY_ENDANGERED,2002,transcritical bifurcation,0.405023595690727
+Hesperiphona vespertina,BioTIME,217__seg01,Aves,VULNERABLE,1995,transcritical bifurcation,0.605916678067297
+Hesperiphona vespertina,BioTIME,217__seg02,Aves,VULNERABLE,2004,transcritical bifurcation,0.53360738819465
+Hippoglossoides platessoides,BioTIME,123,Actinopterygii,ENDANGERED,2007,transcritical bifurcation,0.754180206358433
+Hippoglossoides platessoides,BioTIME,180,Actinopterygii,ENDANGERED,1995,transcritical bifurcation,0.596759342894075
+Hippoglossoides platessoides,BioTIME,466,Actinopterygii,ENDANGERED,2005,transcritical bifurcation,0.442429811321199
+Hesperiphona vespertina,BioTIME,195,Aves,VULNERABLE,2000,transcritical bifurcation,0.361581089766696
+Ischikauia steenackeri,BioTIME,631,Actinopterygii,ENDANGERED,2017,no-bifurcation,0.371830742698512
+Larus saundersi,BioTIME,374,Aves,VULNERABLE,2010,transcritical bifurcation,0.381821610109182
+Leucoraja ocellata,BioTIME,123,Chondrichthyes,ENDANGERED,2006,Hopf bifurcation,0.502004561573267
+Limicola falcinellus,BioTIME,374,Aves,VULNERABLE,2011,transcritical bifurcation,0.344041207141709
+Leucoraja ocellata,BioTIME,180,Chondrichthyes,ENDANGERED,1992,transcritical bifurcation,0.564275662694126
+Leucoraja ocellata,BioTIME,119,Chondrichthyes,ENDANGERED,2009,Hopf bifurcation,0.490074770268984
+Limosa fedoa,BioTIME,694,Aves,VULNERABLE,2019,fold bifurcation,0.35979286916554
+Malacoraja senta,BioTIME,123,Chondrichthyes,VULNERABLE,2008,transcritical bifurcation,0.352312415302731
+Malacoraja senta,BioTIME,119,Chondrichthyes,VULNERABLE,2005,transcritical bifurcation,0.583354948088527
+Malacoraja senta,BioTIME,182,Chondrichthyes,VULNERABLE,2008,transcritical bifurcation,0.517952840653015
+Malacoraja senta,BioTIME,213,Chondrichthyes,VULNERABLE,2004,Hopf bifurcation,0.36239599767141
+Melanitta fusca,BioTIME,91,Aves,VULNERABLE,1998,transcritical bifurcation,0.81696442682296
+Melanitta fusca,BioTIME,582,Aves,VULNERABLE,2017,transcritical bifurcation,0.777133110165596
+Montipora incrassata,BioTIME,122,Cnidaria,ENDANGERED,2010,Hopf bifurcation,0.873603758215904
+Montipora capitata,BioTIME,122,Cnidaria,ENDANGERED,2010,transcritical bifurcation,0.593925389647484
+Myzopsetta ferruginea,BioTIME,123,Actinopterygii,VULNERABLE,2007,transcritical bifurcation,0.675037237256765
+Myzopsetta ferruginea,BioTIME,119,Actinopterygii,VULNERABLE,2008,transcritical bifurcation,0.593079396151006
+Myzopsetta ferruginea,BioTIME,180,Actinopterygii,VULNERABLE,1994,transcritical bifurcation,0.678766601532698
+Nesospingus speculiferus,BioTIME,58,Aves,VULNERABLE,2005,no-bifurcation,0.487110026483424
+Numenius madagascariensis,BioTIME,374,Aves,ENDANGERED,2011,transcritical bifurcation,0.429523826303193
+Oceanodroma leucorhoa,BioTIME,527,Aves,VULNERABLE,2020,Hopf bifurcation,0.329998791706748
+Pandion haliaetus,BioTIME,377,Aves,ENDANGERED,2012,transcritical bifurcation,0.384117830917239
+Pandion haliaetus,BioTIME,709__seg01,Aves,ENDANGERED,2023,Hopf bifurcation,0.583714456856251
+Pandion haliaetus,BioTIME,582,Aves,ENDANGERED,2002,Hopf bifurcation,0.395167609024793
+Pateobatis fai,BioTIME,121,Chondrichthyes,VULNERABLE,2009,Hopf bifurcation,0.853111585974693
+Pavona duerdeni,BioTIME,122,Cnidaria,ENDANGERED,2010,transcritical bifurcation,0.630732891522348
+Pica nutalli,BioTIME,195,Aves,VULNERABLE,2005,no-bifurcation,0.650504053384066
+Physeter macrocephalus,BioTIME,172,Mammalia,VULNERABLE,2009,transcritical bifurcation,0.529808832937852
+Platalea minor,BioTIME,374,Aves,VULNERABLE,2011,no-bifurcation,0.516161397797987
+Pluvialis squatarola,BioTIME,624__seg01,Aves,VULNERABLE,2005,Hopf bifurcation,0.487944935262203
+Pluvialis squatarola,BioTIME,709__seg01,Aves,VULNERABLE,1984,Hopf bifurcation,0.498288254998624
+Pocillopora damicornis,BioTIME,122,Cnidaria,ENDANGERED,2010,transcritical bifurcation,0.465660270489752
+Pocillopora ligulata,BioTIME,122,Cnidaria,ENDANGERED,2010,Hopf bifurcation,0.406658491119742
+Pluvialis squatarola,BioTIME,374,Aves,VULNERABLE,2013,Hopf bifurcation,0.477303947508335
+Pocillopora meandrina,BioTIME,122,Cnidaria,ENDANGERED,2010,transcritical bifurcation,0.787876734137535
+Pluvialis squatarola,BioTIME,582,Aves,VULNERABLE,2018,transcritical bifurcation,0.705573094788269
+Podiceps nigricollis,BioTIME,602__seg01,Aves,VULNERABLE,1999,Hopf bifurcation,0.550510277599096
+Podiceps nigricollis,BioTIME,601__seg01,Aves,VULNERABLE,2015,Hopf bifurcation,0.510897989571095
+Podiceps nigricollis,BioTIME,709__seg01,Aves,VULNERABLE,2022,Hopf bifurcation,0.686870835721493
+Podiceps grisegena,BioTIME,582,Aves,VULNERABLE,2008,transcritical bifurcation,0.625018822797574
+Procellaria aequinoctialis,BioTIME,419__seg01,Aves,VULNERABLE,2008,Hopf bifurcation,0.65438629835844
+Pseudopleuronectes americanus,BioTIME,227,Actinopterygii,VULNERABLE,1993,Hopf bifurcation,0.72469889819622
+Pseudopleuronectes americanus,BioTIME,123,Actinopterygii,VULNERABLE,2009,transcritical bifurcation,0.535580771323293
+Pseudopleuronectes americanus,BioTIME,119,Actinopterygii,VULNERABLE,2009,transcritical bifurcation,0.605909149441868
+Puffinus bulleri,BioTIME,169,Aves,VULNERABLE,2001,transcritical bifurcation,0.421167335938662
+Pterodroma cookii,BioTIME,169,Aves,VULNERABLE,2005,transcritical bifurcation,0.521118134327844
+Puffinus creatopus,BioTIME,169,Aves,VULNERABLE,2004,transcritical bifurcation,0.475597330130404
+Pycnopodia helianthoides,BioTIME,273,Echinodermata,CRITICALLY_ENDANGERED,2011,no-bifurcation,0.455968955472054
+Rhizoprionodon acutus,BioTIME,292,Chondrichthyes,VULNERABLE,1985,transcritical bifurcation,0.418412326835096
+Rhomboplites aurorubens,BioTIME,127,Actinopterygii,VULNERABLE,1987,transcritical bifurcation,0.396866703039268
+Rhomboplites aurorubens,BioTIME,212,Actinopterygii,VULNERABLE,1979,Hopf bifurcation,0.642549672536552
+Rhomboplites aurorubens,BioTIME,211,Actinopterygii,VULNERABLE,1986,no-bifurcation,0.435227197728818
+Rissa tridactyla,BioTIME,69,Aves,VULNERABLE,2002,fold bifurcation,0.438043790310621
+Rissa tridactyla,BioTIME,527,Aves,VULNERABLE,2020,Hopf bifurcation,0.44423882830888
+Rissa tridactyla,BioTIME,163,Aves,VULNERABLE,2002,Hopf bifurcation,0.686601115763187
+Salmo salar,BioTIME,784__seg01,Actinopterygii,VULNERABLE,2017,transcritical bifurcation,0.668302519619465
+Salmo salar,BioTIME,828__seg01,Actinopterygii,VULNERABLE,2006,Hopf bifurcation,0.770681810379028
+Salmo salar,BioTIME,831,Actinopterygii,VULNERABLE,2004,transcritical bifurcation,0.460257952660322
+Salmo salar,BioTIME,847__seg01,Actinopterygii,VULNERABLE,2010,no-bifurcation,0.378168609632121
+Salmo salar,BioTIME,849__seg01,Actinopterygii,VULNERABLE,2007,transcritical bifurcation,0.33427897170186
+Salmo salar,BioTIME,851__seg01,Actinopterygii,VULNERABLE,2009,transcritical bifurcation,0.780018847808242
+Salmo salar,BioTIME,918,Actinopterygii,VULNERABLE,2017,no-bifurcation,0.791693783551455
+Salmo salar,BioTIME,848__seg01,Actinopterygii,VULNERABLE,2022,transcritical bifurcation,0.57794505301863
+Sebastes fasciatus,BioTIME,287,Actinopterygii,ENDANGERED,2008,Hopf bifurcation,0.59690854549408
+Sebastes fasciatus,BioTIME,123,Actinopterygii,ENDANGERED,2006,transcritical bifurcation,0.721638210304082
+Sebastes fasciatus,BioTIME,180,Actinopterygii,ENDANGERED,1992,Hopf bifurcation,0.591646584030241
+Sebastolobus alascanus,BioTIME,163,Actinopterygii,ENDANGERED,2004,Hopf bifurcation,0.437719745002687
+Semicossyphus pulcher,BioTIME,359,Actinopterygii,VULNERABLE,2012,no-bifurcation,0.4796177819062
+Semicossyphus pulcher,BioTIME,595,Actinopterygii,VULNERABLE,2015,transcritical bifurcation,0.38236714862287
+Somateria mollissima,BioTIME,527,Aves,ENDANGERED,2016,transcritical bifurcation,0.557913480568095
+Somateria mollissima,BioTIME,634,Aves,ENDANGERED,2010,no-bifurcation,0.324492483035283
+Somateria mollissima,BioTIME,582,Aves,ENDANGERED,2019,transcritical bifurcation,0.649431241303682
+Squalus acanthias,BioTIME,123,Chondrichthyes,VULNERABLE,2008,transcritical bifurcation,0.573862703493796
+Squalus acanthias,BioTIME,163,Chondrichthyes,VULNERABLE,2003,Hopf bifurcation,0.486893655266613
+Squalus acanthias,BioTIME,466,Chondrichthyes,VULNERABLE,2007,transcritical bifurcation,0.685099477041513
+Stercorarius parasiticus,BioTIME,69,Aves,ENDANGERED,2001,no-bifurcation,0.379466064756707
+Synthliboramphus hypoleucus,BioTIME,169,Aves,ENDANGERED,2001,no-bifurcation,0.428031437453319
+Thalassarche chrysostoma,BioTIME,108,Aves,ENDANGERED,2002,transcritical bifurcation,0.446014815452509
+Thalassarche chrysostoma,BioTIME,419,Aves,ENDANGERED,2010,transcritical bifurcation,0.696763937920332
+Uroplatus guentheri,BioTIME,678,Squamata,ENDANGERED,2017,no-bifurcation,0.509452725015581
+Uroplatus ebenaui,BioTIME,678,Squamata,VULNERABLE,2015,Hopf bifurcation,0.771085365116596
+Zingel asper,BioTIME,918,Actinopterygii,ENDANGERED,2018,Hopf bifurcation,0.871046875417233
+Anguilla anguilla,GPDD,GPDD_51.25_-4.05,Actinopterygii,CRITICALLY_ENDANGERED,1991,transcritical bifurcation,0.315911782206968
+Diomedea exulans,GPDD,GPDD_45.78_170.75,Aves,VULNERABLE,1967,Hopf bifurcation,0.467628884222359
+Rissa tridactyla,GPDD,GPDD_54.82_-1.6,Aves,VULNERABLE,1979,Hopf bifurcation,0.37098732041195
+Salmo salar,GPDD,GPDD_60.0_10.0,Actinopterygii,VULNERABLE,1950,no-bifurcation,0.490302313835127
+Somateria mollissima,GPDD,GPDD_57.5_-2.33,Aves,ENDANGERED,1961,transcritical bifurcation,0.389713606238365
+Alopias vulpinus,LPD,LPD_39.0_-124.75,Chondrichthyes,VULNERABLE,2000,Hopf bifurcation,0.614506401866674
+Alosa alosa,LPD,LPD_44.12_0.84,Actinopterygii,CRITICALLY_ENDANGERED,2006,Hopf bifurcation,0.603036587219685
+Aythya ferina,LPD,LPD_43.57_4.57,Aves,VULNERABLE,1996,transcritical bifurcation,0.368793753534555
+Aythya ferina,LPD,LPD_52.18_5.8,Aves,VULNERABLE,2009,Hopf bifurcation,0.599150132387877
+Burramys parvus,LPD,LPD_-36.08_148.47,Mammalia,CRITICALLY_ENDANGERED,2014,no-bifurcation,0.75640129595995
+Calidris acuminata,LPD,LPD_-14.73_145.11,Aves,VULNERABLE,2015,Hopf bifurcation,0.442951323837042
+Calidris acuminata,LPD,LPD_-21.09_149.38__seg02,Aves,VULNERABLE,2013,transcritical bifurcation,0.434696968039498
+Calidris acuminata,LPD,LPD_-18.31_122.32,Aves,VULNERABLE,2016,Hopf bifurcation,0.457574987551197
+Calidris acuminata,LPD,LPD_-24.23_151.77__seg01,Aves,VULNERABLE,1996,Hopf bifurcation,0.600944143347442
+Calidris acuminata,LPD,LPD_-25.02_114.41__seg01,Aves,VULNERABLE,2018,transcritical bifurcation,0.345865120238159
+Calidris acuminata,LPD,LPD_-25.1_152.81,Aves,VULNERABLE,2018,transcritical bifurcation,0.356522924266756
+Calidris acuminata,LPD,LPD_-32.52_151.19__seg01,Aves,VULNERABLE,2019,transcritical bifurcation,0.443203411484137
+Calidris acuminata,LPD,LPD_-31.92_115.49,Aves,VULNERABLE,2010,Hopf bifurcation,0.522636879328638
+Calidris acuminata,LPD,LPD_-33.91_137.94__seg01,Aves,VULNERABLE,2010,Hopf bifurcation,0.581987724453211
+Calidris acuminata,LPD,LPD_-27.21_153.34,Aves,VULNERABLE,2006,Hopf bifurcation,0.778354485891759
+Calidris acuminata,LPD,LPD_-32.37_152.3__seg01,Aves,VULNERABLE,2014,Hopf bifurcation,0.678674685955048
+Calidris acuminata,LPD,LPD_-34.7_116.16,Aves,VULNERABLE,2018,transcritical bifurcation,0.38616458196193
+Calidris acuminata,LPD,LPD_-33.8_134.79__seg01,Aves,VULNERABLE,2015,no-bifurcation,0.502005883830134
+Calidris acuminata,LPD,LPD_-34.96_137.47__seg01,Aves,VULNERABLE,2014,Hopf bifurcation,0.549877846240997
+Calidris acuminata,LPD,LPD_-37.35_140.03,Aves,VULNERABLE,2019,transcritical bifurcation,0.49297083435813
+Calidris acuminata,LPD,LPD_-38.51_142.54__seg01,Aves,VULNERABLE,2018,Hopf bifurcation,0.488216114696115
+Calidris acuminata,LPD,LPD_-33.69_151.32,Aves,VULNERABLE,2019,transcritical bifurcation,0.448526577185839
+Calidris acuminata,LPD,LPD_-38.39_146.26,Aves,VULNERABLE,2006,transcritical bifurcation,0.440882467018673
+Calidris acuminata,LPD,LPD_-35.77_139.22__seg01,Aves,VULNERABLE,2014,Hopf bifurcation,0.583827562816441
+Calidris acuminata,LPD,LPD_-37.85_143.25,Aves,VULNERABLE,2018,transcritical bifurcation,0.47173770563677
+Calidris acuminata,LPD,LPD_-33.89_122.6__seg01,Aves,VULNERABLE,2015,Hopf bifurcation,0.852043861150742
+Calidris acuminata,LPD,LPD_-40.44_147.82,Aves,VULNERABLE,2013,Hopf bifurcation,0.968523794412613
+Calidris acuminata,LPD,LPD_-40.45_144.53__seg02,Aves,VULNERABLE,2013,Hopf bifurcation,0.799483707547188
+Calidris acuminata,LPD,LPD_-38.32_144.24,Aves,VULNERABLE,2008,transcritical bifurcation,0.378859229490627
+Calidris ferruginea,LPD,LPD_-18.31_122.32,Aves,VULNERABLE,2008,transcritical bifurcation,0.565679335058667
+Calidris ferruginea,LPD,LPD_-25.1_152.81,Aves,VULNERABLE,2008,transcritical bifurcation,0.385357493445918
+Calidris ferruginea,LPD,LPD_-27.21_153.34,Aves,VULNERABLE,2007,transcritical bifurcation,0.496900749581982
+Calidris ferruginea,LPD,LPD_-37.85_143.25,Aves,VULNERABLE,2001,Hopf bifurcation,0.590288468264043
+Calidris ferruginea,LPD,LPD_-38.32_144.24,Aves,VULNERABLE,2019,fold bifurcation,0.593422292172909
+Calidris ferruginea,LPD,LPD_-37.35_140.03,Aves,VULNERABLE,2003,no-bifurcation,0.348096986208111
+Calidris ferruginea,LPD,LPD_-38.39_146.26,Aves,VULNERABLE,2002,fold bifurcation,0.349828193057329
+Calidris ferruginea,LPD,LPD_-40.44_147.82,Aves,VULNERABLE,2001,transcritical bifurcation,0.45583704020828
+Calidris tenuirostris,LPD,LPD_-21.09_149.38,Aves,ENDANGERED,2018,transcritical bifurcation,0.358571473835036
+Calidris tenuirostris,LPD,LPD_-25.1_152.81,Aves,ENDANGERED,2015,Hopf bifurcation,0.403567133005708
+Calidris tenuirostris,LPD,LPD_-12.72_131.18,Aves,ENDANGERED,2017,no-bifurcation,0.529713792842813
+Calidris tenuirostris,LPD,LPD_-31.92_115.49,Aves,ENDANGERED,2016,no-bifurcation,0.332512182247592
+Calidris tenuirostris,LPD,LPD_-27.21_153.34,Aves,ENDANGERED,2013,fold bifurcation,0.35145202993881
+Callorhinus ursinus,LPD,LPD_56.57_-169.6__seg02,Mammalia,VULNERABLE,2003,Hopf bifurcation,0.645858176797628
+Callorhinus ursinus,LPD,LPD_57.4_-170.25,Mammalia,VULNERABLE,1994,Hopf bifurcation,0.757748726755381
+Calidris tenuirostris,LPD,LPD_-34.7_116.16,Aves,ENDANGERED,2013,Hopf bifurcation,0.832849058508873
+Charadrius mongolus,LPD,LPD_-19.6_147.36__seg01,Aves,ENDANGERED,2012,transcritical bifurcation,0.474979559518397
+Charadrius mongolus,LPD,LPD_-22.41_114.42__seg01,Aves,ENDANGERED,2018,Hopf bifurcation,0.892542320489884
+Charadrius mongolus,LPD,LPD_-18.31_122.32,Aves,ENDANGERED,2016,transcritical bifurcation,0.471340397372842
+Charadrius mongolus,LPD,LPD_-24.23_151.77__seg01,Aves,ENDANGERED,1998,Hopf bifurcation,0.638448430970311
+Charadrius mongolus,LPD,LPD_-25.02_114.41__seg01,Aves,ENDANGERED,2014,Hopf bifurcation,0.750133202970028
+Charadrius mongolus,LPD,LPD_-12.72_131.18__seg01,Aves,ENDANGERED,1987,Hopf bifurcation,0.592793368548155
+Charadrius mongolus,LPD,LPD_-27.21_153.34,Aves,ENDANGERED,2011,Hopf bifurcation,0.503415076807141
+Charadrius mongolus,LPD,LPD_-38.39_146.26,Aves,ENDANGERED,2014,transcritical bifurcation,0.362015370139852
+Charadrius mongolus,LPD,LPD_-25.1_152.81,Aves,ENDANGERED,2014,fold bifurcation,0.502615133766085
+Charadrius mongolus,LPD,LPD_-40.45_144.53__seg02,Aves,ENDANGERED,2015,Hopf bifurcation,0.83006601780653
+Charadrius mongolus,LPD,LPD_-21.09_149.38,Aves,ENDANGERED,2018,Hopf bifurcation,0.55303713735193
+Conilurus penicillatus,LPD,LPD_-15.27_125.38,Mammalia,VULNERABLE,2014,Hopf bifurcation,0.660162970796227
+Dasyurus hallucatus,LPD,LPD_-21.49_119.31,Mammalia,ENDANGERED,2016,Hopf bifurcation,0.674024306982756
+Dasyurus hallucatus,LPD,LPD_-15.27_125.38,Mammalia,ENDANGERED,2016,Hopf bifurcation,0.545549603924155
+Falco punctatus,LPD,LPD_-20.3_57.58,Aves,ENDANGERED,1990,Hopf bifurcation,0.752573034912348
+Fratercula arctica,LPD,LPD_67.43_11.88,Aves,ENDANGERED,1998,Hopf bifurcation,0.507016236521304
+Fratercula arctica,LPD,LPD_67.52_12.12,Aves,ENDANGERED,1996,Hopf bifurcation,0.583779124170542
+Gymnobelideus leadbeateri,LPD,LPD_-37.67_146.41,Mammalia,CRITICALLY_ENDANGERED,2017,fold bifurcation,0.722611677646637
+Gypaetus barbatus,LPD,LPD_42.28_9.03,Aves,ENDANGERED,2000,Hopf bifurcation,0.59774427600205
+Haliaeetus albicilla,LPD,LPD_68.0_21.08,Aves,ENDANGERED,1999,Hopf bifurcation,0.634184063971043
+Hippoglossoides platessoides,LPD,LPD_41.1_-68.4,Actinopterygii,ENDANGERED,2009,Hopf bifurcation,0.48225647713989
+Hypotaenidia sylvestris,LPD,LPD_-31.55_159.07,Aves,ENDANGERED,2016,Hopf bifurcation,0.562995816022158
+Leipoa ocellata,LPD,LPD_-30.69_117.48__seg01,Aves,VULNERABLE,2012,Hopf bifurcation,0.371139297448099
+Leipoa ocellata,LPD,LPD_-32.42_144.47__seg01,Aves,VULNERABLE,2015,Hopf bifurcation,0.870756097137928
+Leipoa ocellata,LPD,LPD_-31.08_119.91__seg02,Aves,VULNERABLE,2017,Hopf bifurcation,0.632464089989662
+Leipoa ocellata,LPD,LPD_-34.76_139.93__seg02,Aves,VULNERABLE,2019,no-bifurcation,0.626958370022476
+Leipoa ocellata,LPD,LPD_-35.19_142.33,Aves,VULNERABLE,2008,fold bifurcation,0.494761392078362
+Leipoa ocellata,LPD,LPD_-35.61_141.57,Aves,VULNERABLE,2017,fold bifurcation,0.560543842427433
+Leipoa ocellata,LPD,LPD_-36.54_142.17,Aves,VULNERABLE,2016,no-bifurcation,0.43431501526793
+Limosa haemastica,LPD,LPD_42.81_-70.88,Aves,VULNERABLE,1993,Hopf bifurcation,0.39193699369207
+Numenius madagascariensis,LPD,LPD_-18.31_122.32,Aves,ENDANGERED,2008,transcritical bifurcation,0.527643761178479
+Numenius madagascariensis,LPD,LPD_-28.42_153.61,Aves,ENDANGERED,2019,transcritical bifurcation,0.382840663939714
+Numenius madagascariensis,LPD,LPD_-34.66_150.88,Aves,ENDANGERED,2008,Hopf bifurcation,0.41756591219455
+Numenius madagascariensis,LPD,LPD_-27.21_153.34,Aves,ENDANGERED,2007,Hopf bifurcation,0.608984675863758
+Numenius madagascariensis,LPD,LPD_-35.77_139.22,Aves,ENDANGERED,2011,Hopf bifurcation,0.80834501683712
+Pandion haliaetus,LPD,LPD_54.0_-2.0__seg01,Aves,ENDANGERED,1994,Hopf bifurcation,0.647606670111418
+Petrogale lateralis,LPD,LPD_-23.48_130.47,Mammalia,VULNERABLE,2019,Hopf bifurcation,0.594048608653247
+Podiceps grisegena,LPD,LPD_52.18_5.8,Aves,VULNERABLE,2009,Hopf bifurcation,0.935182663798332
+Podiceps grisegena,LPD,LPD_55.41_-105.76,Aves,VULNERABLE,2009,Hopf bifurcation,0.627973313629627
+Pseudomys oralis,LPD,LPD_-28.14_152.79,Mammalia,VULNERABLE,2007,Hopf bifurcation,0.442951323837042
+Pseudopleuronectes americanus,LPD,LPD_47.0_-63.0,Actinopterygii,VULNERABLE,2011,no-bifurcation,0.712325235456228
+Pteropus melanotus,LPD,LPD_-10.48_105.63,Mammalia,VULNERABLE,2015,no-bifurcation,0.49226357168518
+Pseudopleuronectes americanus,LPD,LPD_44.2_-61.57,Actinopterygii,VULNERABLE,1999,Hopf bifurcation,0.852765294909477
+Salmo salar,LPD,LPD_47.88_-55.7,Actinopterygii,VULNERABLE,2006,Hopf bifurcation,0.636007837951183
+Salmo salar,LPD,LPD_63.3_9.83,Actinopterygii,VULNERABLE,1998,Hopf bifurcation,0.74343748614192
+Salmo salar,LPD,LPD_60.25_6.0,Actinopterygii,VULNERABLE,2000,Hopf bifurcation,0.903123277425766
+Salmo salar,LPD,LPD_61.5_6.83__seg02,Actinopterygii,VULNERABLE,2000,Hopf bifurcation,0.674251984059811
+Salmo salar,LPD,LPD_59.0_6.25,Actinopterygii,VULNERABLE,1999,Hopf bifurcation,0.803884848952293
+Scarus trispinosus,LPD,LPD_-16.92_-39.07,Actinopterygii,ENDANGERED,2003,Hopf bifurcation,0.442951323837042
+Squalus acanthias,LPD,LPD_43.25_-65.5,Chondrichthyes,VULNERABLE,2009,Hopf bifurcation,0.850020621716976
+Sternula nereis,LPD,LPD_-35.77_139.22,Aves,VULNERABLE,2008,Hopf bifurcation,0.688684299588203
+Thunnus maccoyii,LPD,LPD_-45.0_-130.0,Actinopterygii,ENDANGERED,1990,no-bifurcation,0.492110825749114
+Zanda latirostris,LPD,LPD_-31.92_115.49,Aves,ENDANGERED,2016,transcritical bifurcation,0.462123787964811
+Zanda baudinii,LPD,LPD_-32.44_116.4,Aves,CRITICALLY_ENDANGERED,2018,fold bifurcation,0.444221274880692
+Zanda latirostris,LPD,LPD_-32.44_116.4,Aves,ENDANGERED,2018,fold bifurcation,0.419766908604652
+Anguilla anguilla,RivFishTIME,G12790,Actinopterygii,CRITICALLY_ENDANGERED,2010,Hopf bifurcation,0.778183574974537
+Anguilla anguilla,RivFishTIME,G11479,Actinopterygii,CRITICALLY_ENDANGERED,2014,Hopf bifurcation,0.889992780983448
+Anguilla anguilla,RivFishTIME,G12787,Actinopterygii,CRITICALLY_ENDANGERED,2016,Hopf bifurcation,0.451627188362181
+Anguilla anguilla,RivFishTIME,G12792,Actinopterygii,CRITICALLY_ENDANGERED,2013,no-bifurcation,0.411006086639827
+Anguilla anguilla,RivFishTIME,G8071,Actinopterygii,CRITICALLY_ENDANGERED,2014,Hopf bifurcation,0.552129307761788
+Anguilla anguilla,RivFishTIME,G7852,Actinopterygii,CRITICALLY_ENDANGERED,2003,Hopf bifurcation,0.836712458729744
+Anguilla anguilla,RivFishTIME,G12791,Actinopterygii,CRITICALLY_ENDANGERED,2010,Hopf bifurcation,0.545834067836404
+Anguilla anguilla,RivFishTIME,G8141,Actinopterygii,CRITICALLY_ENDANGERED,1996,Hopf bifurcation,0.741948205977678
+Anguilla anguilla,RivFishTIME,G8143,Actinopterygii,CRITICALLY_ENDANGERED,2002,Hopf bifurcation,0.830041465163231
+Anguilla anguilla,RivFishTIME,G8245,Actinopterygii,CRITICALLY_ENDANGERED,2014,Hopf bifurcation,0.920647558569908
+Anguilla anguilla,RivFishTIME,G8507,Actinopterygii,CRITICALLY_ENDANGERED,2014,Hopf bifurcation,0.546627548523247
+Rhadinocentrus ornatus,RivFishTIME,G170__seg01,Actinopterygii,VULNERABLE,2010,Hopf bifurcation,0.830464413762093
+Rhadinocentrus ornatus,RivFishTIME,G171,Actinopterygii,VULNERABLE,2010,Hopf bifurcation,0.793546338379383
+Rhadinocentrus ornatus,RivFishTIME,G255,Actinopterygii,VULNERABLE,2010,Hopf bifurcation,0.783906065672636
+Salmo salar,RivFishTIME,G10358,Actinopterygii,VULNERABLE,2002,Hopf bifurcation,0.682912129163742
+Salmo salar,RivFishTIME,G7293,Actinopterygii,VULNERABLE,2014,Hopf bifurcation,0.663239821791649
+Squalius laietanus,RivFishTIME,G12792,Actinopterygii,VULNERABLE,2010,Hopf bifurcation,0.847081506252289
+Squalius laietanus,RivFishTIME,G12790,Actinopterygii,VULNERABLE,2013,Hopf bifurcation,0.37128257448785
+Burramys parvus,TSX,944_2_1752_946009_m_61,Mammalia,CRITICALLY_ENDANGERED,2015,Hopf bifurcation,0.470697044953704
+Calidris acuminata,TSX,363_2_4_266929_u163__seg01,Aves,VULNERABLE,2011,Hopf bifurcation,0.726139385253191
+Calidris acuminata,TSX,960_2_4_263803_u163,Aves,VULNERABLE,2011,Hopf bifurcation,0.639571893960238
+Calidris ferruginea,TSX,363_2_4_266675_u161__seg01,Aves,VULNERABLE,2000,Hopf bifurcation,0.728147668391466
+Calidris ferruginea,TSX,363_2_4_267705_u161,Aves,VULNERABLE,2001,Hopf bifurcation,0.581075157038868
+Calidris ferruginea,TSX,960_2_4_264006_u161,Aves,VULNERABLE,2011,Hopf bifurcation,0.471154827624559
+Anarhichas denticulatus,LPD,LPD_43.25_-65.5__seg02,Actinopterygii,ENDANGERED,1998,Hopf bifurcation,0.758323352783918
+Hoplostethus atlanticus,LPD,LPD_-43.55_174.34,Actinopterygii,VULNERABLE,1989,Hopf bifurcation,0.693989230692387
+Calidris tenuirostris,TSX,960_2_4_263554_u165,Aves,ENDANGERED,2016,Hopf bifurcation,0.645512562245131
+Calidris tenuirostris,TSX,960_2_4_263661_u165,Aves,ENDANGERED,2016,Hopf bifurcation,0.883175757527351
+Calidris tenuirostris,TSX,960_2_4_263591_u165,Aves,ENDANGERED,2016,Hopf bifurcation,0.841502529382706
+Charadrius mongolus,TSX,960_2_4_263554_139,Aves,ENDANGERED,2011,Hopf bifurcation,0.755521927773952
+Charadrius mongolus,TSX,960_2_4_263660_139,Aves,ENDANGERED,2010,Hopf bifurcation,0.442951323837042
+Charadrius mongolus,TSX,960_2_4_263591_139,Aves,ENDANGERED,2013,Hopf bifurcation,0.612585910782218
+Leipoa ocellata,TSX,269_7_7_270008_u7,Aves,VULNERABLE,2012,Hopf bifurcation,0.657852421700955
+Leipoa ocellata,TSX,269_7_7_270015_u7,Aves,VULNERABLE,2011,Hopf bifurcation,0.442951323837042
+Leipoa ocellata,TSX,269_7_7_270023_u7__seg01,Aves,VULNERABLE,2013,Hopf bifurcation,0.591290250234306
+Leipoa ocellata,TSX,269_7_7_270017_u7,Aves,VULNERABLE,2015,Hopf bifurcation,0.794570876657963
+Numenius madagascariensis,TSX,960_2_4_263591_u149,Aves,ENDANGERED,2013,Hopf bifurcation,0.479799829050899
+Numenius madagascariensis,TSX,960_2_4_264007_u149,Aves,ENDANGERED,2012,Hopf bifurcation,0.589155478961766
+Pseudophryne pengilleyi,TSX,1275_2_2519_945787_a_49,Lissamphibia,CRITICALLY_ENDANGERED,2012,Hopf bifurcation,0.442951323837042
+Sarcophilus harrisii,TSX,632_542_2679_951713_m_448,Mammalia,ENDANGERED,2004,Hopf bifurcation,0.869246664643288
+Sarcophilus harrisii,TSX,632_542_2679_951712_m_448,Mammalia,ENDANGERED,2007,Hopf bifurcation,0.73420916646719
+Lycia pomonaria,BioTIME,604,Hexapoda,VULNERABLE,2004,Hopf bifurcation,0.466841013729572
+Pennatula rubra,BioTIME,505,Cnidaria,VULNERABLE,2011,Hopf bifurcation,0.421799918822944
+Thymelicus lineola,BioTIME,683,Hexapoda,VULNERABLE,2017,fold bifurcation,0.3539665248245
+Xanthorhoe decoloraria,BioTIME,604,Hexapoda,VULNERABLE,2014,transcritical bifurcation,0.485402974486351
+Circus cyaneus,BioTIME,195,Aves,VULNERABLE,2006,fold bifurcation,0.543641929700971
+Fulmarus glacialis,BioTIME,69,Aves,VULNERABLE,2002,fold bifurcation,0.425329817389138
+Anguilla anguilla,BioTIME,918,Actinopterygii,CRITICALLY_ENDANGERED,2021,fold bifurcation,0.6109188832342625
+Anthus spragueii,BioTIME,195,Aves,VULNERABLE,1995,no-bifurcation,0.3580864533963904
+Bolbometopon muricatum,BioTIME,121__seg01,Actinopterygii,VULNERABLE,2006,Hopf bifurcation,0.8986709207296372
+Galaxias postvectis,BioTIME,432,Actinopterygii,ENDANGERED,2011,transcritical bifurcation,0.3177862195065245

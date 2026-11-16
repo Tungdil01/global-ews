@@ -1,0 +1,2 @@
+arm,model,odds_ratio,ci_lower,ci_upper,p_value
+A_Firth,multinomial,2.347920782627057,1.0651793622850865,6.40111412786645,0.0328001727559643
