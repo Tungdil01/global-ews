@@ -147,4 +147,4 @@ fi
 echo "Running img/convert_png.sh..."
 bash img/convert_png.sh
 conda deactivate
-echo "run_ewstools.sh completed."
+echo "run_model.sh completed."
