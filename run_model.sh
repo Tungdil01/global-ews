@@ -5,7 +5,7 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
 # --- BioTIME Cache Check ---
-BIOTIME_PKL="code/csv/datasets/biotime_1f9effe9.pkl"
+BIOTIME_PKL="codes/csv/datasets/biotime_1f9effe9.pkl"
 BIOTIME_URL="https://github.com/Tungdil01/global-ews/releases/download/data-biotime-v1/biotime_1f9effe9.pkl"
 if [ ! -f "$BIOTIME_PKL" ]; then
     echo "======================================================================"
@@ -127,8 +127,8 @@ else
 fi
 
 printf "\n\n\n\n----------------------------------------------------------------------\n\n\n\n"
-if [ -d "code" ]; then
-    cd code
+if [ -d "codes" ]; then
+    cd codes
     scripts=(
         "list_repeated.py"
         "only_year_1900.py"
