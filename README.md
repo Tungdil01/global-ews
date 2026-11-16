@@ -14,7 +14,7 @@ For the exact package versions, see [requirements.txt](https://github.com/Tungdi
 
 ## BioTIME cache
 
-`code/csv/datasets/biotime_1f9effe9.pkl` (~627 MB) exceeds GitHub's file limit and is distributed as a Release asset. Download it and place it in `code/csv/datasets/` before running `run_model.sh`:
+`code/csv/datasets/biotime_1f9effe9.pkl` (~627 MB) exceeds GitHub's file limit and is distributed as a Release asset. `run_model.sh` will automatically download it if missing. To download manually, run:
 
 ```bash
 wget -P code/csv/datasets/ https://github.com/Tungdil01/global-ews/releases/download/data-biotime-v1/biotime_1f9effe9.pkl

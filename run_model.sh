@@ -1,8 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
+
+# --- BioTIME Cache Check ---
+BIOTIME_PKL="code/csv/datasets/biotime_1f9effe9.pkl"
+BIOTIME_URL="https://github.com/Tungdil01/global-ews/releases/download/data-biotime-v1/biotime_1f9effe9.pkl"
+if [ ! -f "$BIOTIME_PKL" ]; then
+    echo "======================================================================"
+    echo "BioTIME cache missing. Auto-downloading (~627 MB) from GitHub Release..."
+    echo "======================================================================"
+    mkdir -p "$(dirname "$BIOTIME_PKL")"
+    wget -q --show-progress -O "$BIOTIME_PKL" "$BIOTIME_URL" || { echo "Download failed. Please download manually."; exit 1; }
+fi
+
 run_python_script() { local script="$1"; echo -e "\033[1;31mRunning $script...\033[0m"; python "$script"; }
 MINICONDA_DIR="$HOME/miniconda3"
 MINICONDA_SH="Miniconda3-latest-Linux-x86_64.sh"
@@ -113,9 +125,6 @@ else
     echo "No requirements.txt found at project root"
     exit 1
 fi
-
-#echo "Installing ewstools (pip install ewstools)..."
-#pip install ewstools || echo "Warning: pip install ewstools returned a non-zero exit code"
 
 printf "\n\n\n\n----------------------------------------------------------------------\n\n\n\n"
 if [ -d "code" ]; then
